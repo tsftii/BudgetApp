@@ -3,7 +3,7 @@ import { seedDefaults, dbAPI, Transaction, Category, Account } from './db.js';
 import { formatCurrency, formatDate } from './utils.js';
 import Chart from 'chart.js/auto';
 import { scanReceipt, scanInvestmentReceipt } from './receiptScanner.js';
-import { parseCSV, importMappedTransactions } from './csvImporter.js';
+
 import { exportBackup, importBackup } from './backupManager.js';
 
 // Setup App Shell
@@ -706,15 +706,26 @@ async function renderTransactions(container: HTMLElement): Promise<void> {
   
   txs.reverse();
 
+  // Group by date
+  const groupedTxs: Record<string, Transaction[]> = {};
+  txs.forEach(tx => {
+    if (!groupedTxs[tx.date]) groupedTxs[tx.date] = [];
+    groupedTxs[tx.date].push(tx);
+  });
+  
+  const sortedDates = Object.keys(groupedTxs).sort((a, b) => b.localeCompare(a));
+  
+  const today = new Date().toISOString().split('T')[0];
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterday = yesterdayDate.toISOString().split('T')[0];
+
   container.innerHTML = `
     <div class="flex justify-between align-center mb-4">
       <h2>Historial de Transacciones</h2>
       <div style="display: flex; gap: 8px;">
         <button class="btn" id="btn-scan" style="padding: 6px 12px; font-size: 0.85rem; background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-primary);">
           <i class="ph ph-camera"></i> Escanear
-        </button>
-        <button class="btn" id="btn-import" style="padding: 6px 12px; font-size: 0.85rem; background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-primary);" title="Importar CSV">
-          <i class="ph ph-file-csv"></i> CSV
         </button>
         <button class="btn" id="btn-export-backup" style="padding: 6px 12px; font-size: 0.85rem; background: var(--accent-primary); border: 1px solid var(--border-color); color: var(--bg-color);" title="Exportar Respaldo">
           <i class="ph-fill ph-export"></i> Respaldo
@@ -726,28 +737,40 @@ async function renderTransactions(container: HTMLElement): Promise<void> {
     </div>
     ${txs.length === 0 ? '<div class="card text-center" style="padding: 40px; color: var(--text-secondary)">No se encontraron transacciones.</div>' : ''}
     <div class="list pb-4">
-      ${txs.map(tx => {
-        const props = getTxDisplayProps(tx, catMap, accountsMap);
+      ${sortedDates.map(date => {
+        let displayDate = date;
+        if (date === today) displayDate = 'Hoy';
+        else if (date === yesterday) displayDate = 'Ayer';
+        else displayDate = formatDate(date); // Fallback to formatted date
+
         return `
-          <div class="list-item">
-            <div class="flex align-center">
-              <div class="list-item-icon" style="color: ${props.color}; background: ${props.color}20;">
-                <i class="ph ${props.icon}"></i>
-              </div>
-              <div>
-                <div class="list-item-title">${props.title}</div>
-                <div class="list-item-desc">${props.desc}</div>
-              </div>
-            </div>
-            <div class="flex align-center">
-              <div class="list-item-value ${props.valueClass}" style="margin-right: 12px;">
-                ${props.valueText}
-              </div>
-              <button onclick="editTransaction(${tx.id})" style="background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center;">
-                <i class="ph ph-pencil-simple"></i>
-              </button>
-            </div>
+          <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); margin: 16px 0 8px 0px; text-transform: uppercase;">
+            ${displayDate}
           </div>
+          ${groupedTxs[date].map(tx => {
+            const props = getTxDisplayProps(tx, catMap, accountsMap);
+            return \`
+              <div class="list-item">
+                <div class="flex align-center">
+                  <div class="list-item-icon" style="color: \${props.color}; background: \${props.color}20;">
+                    <i class="ph \${props.icon}"></i>
+                  </div>
+                  <div>
+                    <div class="list-item-title">\${props.title}</div>
+                    <div class="list-item-desc">\${props.desc}</div>
+                  </div>
+                </div>
+                <div class="flex align-center">
+                  <div class="list-item-value \${props.valueClass}" style="margin-right: 12px;">
+                    \${props.valueText}
+                  </div>
+                  <button onclick="editTransaction(\${tx.id})" style="background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center;">
+                    <i class="ph ph-pencil-simple"></i>
+                  </button>
+                </div>
+              </div>
+            \`;
+          }).join('')}
         `;
       }).join('')}
     </div>
@@ -755,7 +778,6 @@ async function renderTransactions(container: HTMLElement): Promise<void> {
 
   // Bind new buttons
   const btnScan = document.getElementById('btn-scan');
-  const btnImport = document.getElementById('btn-import');
   const btnExportBackup = document.getElementById('btn-export-backup');
   const btnImportBackup = document.getElementById('btn-import-backup');
   
@@ -763,13 +785,6 @@ async function renderTransactions(container: HTMLElement): Promise<void> {
     btnScan.addEventListener('click', () => {
       const receiptInput = document.getElementById('receiptInput') as HTMLInputElement | null;
       if (receiptInput) receiptInput.click();
-    });
-  }
-  
-  if (btnImport) {
-    btnImport.addEventListener('click', () => {
-      const csvInput = document.getElementById('csvInput') as HTMLInputElement | null;
-      if (csvInput) csvInput.click();
     });
   }
 
@@ -1891,112 +1906,7 @@ async function init(): Promise<void> {
     });
   }
 
-  // --- CSV Logic ---
-  const csvInput = document.getElementById('csvInput') as HTMLInputElement | null;
-  const csvModal = document.getElementById('csv-modal');
-  const csvForm = document.getElementById('csv-form') as HTMLFormElement | null;
-  let currentCsvData: any[][] | null = null;
 
-  if (csvInput && csvModal) {
-    csvInput.addEventListener('change', async (e: Event) => {
-      const target = e.target as HTMLInputElement;
-      const file = target.files ? target.files[0] : null;
-      if (!file) return;
-
-      try {
-        const data = await parseCSV(file);
-        if (data.length === 0) {
-          alert("CSV is empty");
-          return;
-        }
-        currentCsvData = data;
-
-        // Preview the first valid row
-        const previewEl = document.getElementById('csv-preview');
-        if (previewEl) {
-          previewEl.innerHTML = data.slice(0, 2).map(row => row.join(' | ')).join('<br/>');
-        }
-
-        // Populate selects
-        const cols = data[0].length;
-        let options = '';
-        for (let i = 0; i < cols; i++) {
-          options += `<option value="${i}">Column ${i+1}</option>`;
-        }
-        const csvColDate = document.getElementById('csv-col-date') as HTMLSelectElement | null;
-        const csvColAmount = document.getElementById('csv-col-amount') as HTMLSelectElement | null;
-        const csvColMerchant = document.getElementById('csv-col-merchant') as HTMLSelectElement | null;
-        
-        if (csvColDate) csvColDate.innerHTML = options;
-        if (csvColAmount) csvColAmount.innerHTML = options;
-        if (csvColMerchant) csvColMerchant.innerHTML = options;
-
-        // Pre-select guesses
-        if (cols > 0 && csvColDate) csvColDate.value = "0";
-        if (cols > 1 && csvColMerchant) csvColMerchant.value = "1";
-        if (cols > 2 && csvColAmount) csvColAmount.value = "2";
-
-        // Populate accounts
-        const accounts = await dbAPI.getAccounts();
-        const csvAccount = document.getElementById('csv-account') as HTMLSelectElement | null;
-        if (csvAccount) {
-          csvAccount.innerHTML = accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-        }
-
-        csvModal.classList.add('active');
-      } catch (err: any) {
-        alert("Failed to parse CSV: " + err.message);
-      } finally {
-        csvInput.value = ''; // reset
-      }
-    });
-  }
-
-  if (csvForm && csvModal && loadingOverlay) {
-    csvForm.addEventListener('submit', async (e: Event) => {
-      e.preventDefault();
-      if (!currentCsvData) return;
-
-      const csvColDate = document.getElementById('csv-col-date') as HTMLSelectElement | null;
-      const csvColAmount = document.getElementById('csv-col-amount') as HTMLSelectElement | null;
-      const csvColMerchant = document.getElementById('csv-col-merchant') as HTMLSelectElement | null;
-      const csvAccount = document.getElementById('csv-account') as HTMLSelectElement | null;
-      const loadingText = document.getElementById('loading-text');
-
-      if (!csvColDate || !csvColAmount || !csvColMerchant || !csvAccount) return;
-
-      const mapping: CSVMapping = {
-        dateIndex: parseInt(csvColDate.value),
-        amountIndex: parseInt(csvColAmount.value),
-        merchantIndex: parseInt(csvColMerchant.value)
-      };
-      const accountId = parseInt(csvAccount.value);
-
-      loadingOverlay.classList.add('active');
-      if (loadingText) loadingText.innerText = "Importing...";
-      
-      try {
-        const count = await importMappedTransactions(currentCsvData, mapping, accountId);
-        csvModal.classList.remove('active');
-        alert(`Successfully imported ${count} transactions!`);
-        router(); // Refresh view
-      } catch (err: any) {
-        alert("Failed to import: " + err.message);
-      } finally {
-        loadingOverlay.classList.remove('active');
-        if (loadingText) loadingText.innerText = "Processing...";
-        currentCsvData = null;
-      }
-    });
-  }
-
-  const closeCsvModalBtn = document.getElementById('close-csv-modal');
-  if (closeCsvModalBtn) {
-    closeCsvModalBtn.addEventListener('click', () => {
-      if (csvModal) csvModal.classList.remove('active');
-      currentCsvData = null;
-    });
-  }
 
   // --- Backup Logic ---
   const backupExportModal = document.getElementById('backup-export-modal');

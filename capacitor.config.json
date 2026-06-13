@@ -1,6 +1,6 @@
 {
   "appId": "com.tomas.budgetapp",
-  "appName": "BudgetApp",
+  "appName": "Origami Wallet",
   "webDir": "dist",
   "bundledWebRuntime": false
 }

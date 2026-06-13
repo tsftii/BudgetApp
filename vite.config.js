@@ -9,8 +9,8 @@ export default defineConfig({
         enabled: true
       },
       manifest: {
-        name: 'BudgetApp',
-        short_name: 'BudgetApp',
+        name: 'Origami Wallet',
+        short_name: 'Origami Wallet',
         description: 'Offline-first personal budgeting application',
         theme_color: '#121212',
         background_color: '#0d1117',

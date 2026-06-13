@@ -749,27 +749,27 @@ async function renderTransactions(container: HTMLElement): Promise<void> {
           </div>
           ${groupedTxs[date].map(tx => {
             const props = getTxDisplayProps(tx, catMap, accountsMap);
-            return \`
+            return `
               <div class="list-item">
                 <div class="flex align-center">
-                  <div class="list-item-icon" style="color: \${props.color}; background: \${props.color}20;">
-                    <i class="ph \${props.icon}"></i>
+                  <div class="list-item-icon" style="color: ${props.color}; background: ${props.color}20;">
+                    <i class="ph ${props.icon}"></i>
                   </div>
                   <div>
-                    <div class="list-item-title">\${props.title}</div>
-                    <div class="list-item-desc">\${props.desc}</div>
+                    <div class="list-item-title">${props.title}</div>
+                    <div class="list-item-desc">${props.desc}</div>
                   </div>
                 </div>
                 <div class="flex align-center">
-                  <div class="list-item-value \${props.valueClass}" style="margin-right: 12px;">
-                    \${props.valueText}
+                  <div class="list-item-value ${props.valueClass}" style="margin-right: 12px;">
+                    ${props.valueText}
                   </div>
-                  <button onclick="editTransaction(\${tx.id})" style="background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center;">
+                  <button onclick="editTransaction(${tx.id})" style="background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center;">
                     <i class="ph ph-pencil-simple"></i>
                   </button>
                 </div>
               </div>
-            \`;
+            `;
           }).join('')}
         `;
       }).join('')}

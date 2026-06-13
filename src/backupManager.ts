@@ -35,11 +35,12 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey>
 }
 
 export async function exportBackup(password: string): Promise<Blob> {
+  const db = await initDB();
   const data = {
     accounts: await dbAPI.getAccounts(),
     categories: await dbAPI.getCategories(),
     transactions: await dbAPI.getTransactions(),
-    rules: await dbAPI.getCategoryRules()
+    rules: await db.getAll('categoryRules')
   };
   
   const jsonStr = JSON.stringify(data);

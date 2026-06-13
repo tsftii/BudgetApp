@@ -644,19 +644,19 @@ async function renderDashboard(container: HTMLElement): Promise<void> {
     </div>
     
     <!-- Hub Quick Links -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px;">
-      <a href="#/budget" class="card" style="margin: 0; padding: 12px; text-decoration: none; display: flex; align-items: center; gap: 12px;">
-        <div style="background: var(--accent-primary); color: var(--bg-color); border-radius: var(--radius-md); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: var(--border-width) solid var(--border-color); box-shadow: var(--shadow-sm); flex-shrink: 0;">
-          <i class="ph-fill ph-chart-pie-slice"></i>
+    <div class="flex" style="gap: 12px; margin-bottom: 24px;">
+      <button class="btn" onclick="window.location.hash='#/budget'" style="flex: 1; padding: 12px; border-radius: var(--radius-lg); flex-direction: row; gap: 8px;">
+        <div style="background: var(--accent-primary); border: var(--border-width) solid var(--border-color); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--bg-color);">
+          <i class="ph-fill ph-chart-pie-slice" style="font-size: 1.25rem;"></i>
         </div>
-        <span style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">Presupuesto</span>
-      </a>
-      <a href="#/investments" class="card" style="margin: 0; padding: 12px; text-decoration: none; display: flex; align-items: center; gap: 12px;">
-        <div style="background: var(--accent-blue); color: var(--bg-color); border-radius: var(--radius-md); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: var(--border-width) solid var(--border-color); box-shadow: var(--shadow-sm); flex-shrink: 0;">
-          <i class="ph-fill ph-trend-up"></i>
+        <span style="font-weight: 600; font-size: 0.9rem;">Presupuesto</span>
+      </button>
+      <button class="btn" onclick="window.location.hash='#/investments'" style="flex: 1; padding: 12px; border-radius: var(--radius-lg); flex-direction: row; gap: 8px;">
+        <div style="background: var(--accent-blue); border: var(--border-width) solid var(--border-color); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--bg-color);">
+          <i class="ph-bold ph-trend-up" style="font-size: 1.25rem;"></i>
         </div>
-        <span style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">Inversiones</span>
-      </a>
+        <span style="font-weight: 600; font-size: 0.9rem;">Inversiones</span>
+      </button>
     </div>
   `;
 
@@ -721,21 +721,21 @@ async function renderTransactions(container: HTMLElement): Promise<void> {
   const yesterday = yesterdayDate.toISOString().split('T')[0];
 
   container.innerHTML = `
-    <div class="flex justify-between align-center mb-4">
-      <h2>Historial de Transacciones</h2>
-      <div style="display: flex; gap: 8px;">
-        <button class="btn" id="btn-scan" style="padding: 6px 12px; font-size: 0.85rem; background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-primary);">
-          <i class="ph ph-camera"></i> Escanear
+    <div class="header" style="padding: 16px 20px;">
+      <h1 style="font-size: 1.4rem;">Historial de Transacciones</h1>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+        <button class="btn" id="btn-scan" style="padding: 6px 10px; font-size: 0.8rem; background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-primary);" title="Escanear Ticket">
+          <i class="ph-fill ph-camera"></i> Escanear
         </button>
-        <button class="btn" id="btn-export-backup" style="padding: 6px 12px; font-size: 0.85rem; background: var(--accent-primary); border: 1px solid var(--border-color); color: var(--bg-color);" title="Exportar Respaldo">
+        <button class="btn" id="btn-export-backup" style="padding: 6px 10px; font-size: 0.8rem; background: var(--accent-primary); border: 1px solid var(--border-color); color: var(--bg-color);" title="Exportar Respaldo">
           <i class="ph-fill ph-export"></i> Respaldo
         </button>
-        <button class="btn" id="btn-import-backup" style="padding: 6px 12px; font-size: 0.85rem; background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-primary);" title="Importar Respaldo">
+        <button class="btn" id="btn-import-backup" style="padding: 6px 10px; font-size: 0.8rem; background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-primary);" title="Importar Respaldo">
           <i class="ph-fill ph-download-simple"></i> Restablecer
         </button>
       </div>
     </div>
-    ${txs.length === 0 ? '<div class="card text-center" style="padding: 40px; color: var(--text-secondary)">No se encontraron transacciones.</div>' : ''}
+    ${txs.length === 0 ? '<div class="card text-center" style="padding: 32px 16px; color: var(--text-secondary)">No se encontraron transacciones.</div>' : ''}
     <div class="list pb-4">
       ${sortedDates.map(date => {
         let displayDate = date;

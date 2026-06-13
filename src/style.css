@@ -414,6 +414,39 @@ body {
 }
 .icon-swatch.active {
   background: var(--accent-primary);
-  border-color: var(--accent-primary);
   color: #fff;
+}
+
+/* Responsive Adjustments for Mobile */
+@media (max-width: 480px) {
+  /* Stack form elements vertically */
+  .form-group.flex {
+    flex-direction: column;
+    gap: 16px !important;
+  }
+  
+  /* Wrap top-level flex containers */
+  .flex.justify-between.align-center.mb-4 {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  /* Shrink text for smaller screens */
+  .header h1 {
+    font-size: 1.25rem;
+  }
+  .balance-amount {
+    font-size: 2.2rem;
+  }
+  
+  /* Compact lists */
+  .list-item {
+    padding: 12px;
+  }
+  .list-item-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+    margin-right: 12px;
+  }
 }

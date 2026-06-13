@@ -1,0 +1,6 @@
+{
+  "appId": "com.tomas.budgetapp",
+  "appName": "BudgetApp",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

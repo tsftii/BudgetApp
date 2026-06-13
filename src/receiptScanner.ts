@@ -62,6 +62,100 @@ export async function preprocessImage(imageFile: File): Promise<string> {
   });
 }
 
+export interface InvestmentReceiptData {
+  capital: number | null;
+  tna: number | null;
+  days: number | null;
+}
+
+export async function scanInvestmentReceipt(imageFile: File): Promise<InvestmentReceiptData> {
+  try {
+    const processedImageUrl = await preprocessImage(imageFile);
+    const result = await Tesseract.recognize(processedImageUrl, 'spa', {
+      logger: (m: any) => console.log(m)
+    });
+    return parseInvestmentReceiptData(result.data.text);
+  } catch (error) {
+    console.error("OCR Error:", error);
+    throw new Error("Error al escanear el comprobante de inversión");
+  }
+}
+
+export function parseInvestmentReceiptData(text: string): InvestmentReceiptData {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  
+  let capital: number | null = null;
+  let tna: number | null = null;
+  let days: number | null = null;
+
+  function parseNumber(str: string): number | null {
+    let clean = str.replace(/[^\d\.,]/g, '');
+    if (clean.includes(',') && clean.includes('.')) {
+      clean = clean.replace(/\./g, ''); 
+      clean = clean.replace(',', '.'); 
+      return parseFloat(clean);
+    }
+    if (clean.includes(',')) {
+      clean = clean.replace(',', '.');
+      return parseFloat(clean);
+    }
+    return parseFloat(clean);
+  }
+
+  // 1. Find TNA
+  const tnaRegex = /(?:tna|tasa.*?anual|rendimiento).*?([\d\.,]+)\s*%/i;
+  for (const line of lines) {
+    const match = line.match(tnaRegex);
+    if (match) {
+      const val = parseNumber(match[1]);
+      if (val) { tna = val; break; }
+    }
+  }
+
+  // 2. Find Capital
+  const capitalRegex = /(?:capital|inversión|monto|invertiste).*?\$?\s*([\d\.,]+)/i;
+  for (const line of lines) {
+    if (line.match(/tna|tasa/i)) continue; // avoid mixing up percentage
+    const match = line.match(capitalRegex);
+    if (match) {
+      const val = parseNumber(match[1]);
+      if (val && String(val).includes('.')) { // Usually has decimals or is large
+         capital = val;
+         break;
+      }
+    }
+  }
+
+  // 3. Find Days (Plazo)
+  const daysRegex = /(?:plazo|duración|días).*?(\d+)/i;
+  for (const line of lines) {
+    const match = line.match(daysRegex);
+    if (match) {
+      const val = parseInt(match[1]);
+      if (val && val < 1000) { days = val; break; }
+    }
+  }
+
+  // Fallback if not found on the same line (look for "Plazo" then next line is "30")
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].toLowerCase();
+    if (!tna && (line.includes('tna') || line.includes('tasa'))) {
+      if (i + 1 < lines.length) {
+        const match = lines[i+1].match(/([\d\.,]+)\s*%/);
+        if (match) { tna = parseNumber(match[1]); }
+      }
+    }
+    if (!days && (line.includes('plazo') || line.includes('días'))) {
+      if (i + 1 < lines.length) {
+        const match = lines[i+1].match(/^(\d+)$/);
+        if (match) { days = parseInt(match[1]); }
+      }
+    }
+  }
+
+  return { capital, tna, days };
+}
+
 export async function scanReceipt(imageFile: File): Promise<ReceiptData> {
   try {
     const processedImageUrl = await preprocessImage(imageFile);

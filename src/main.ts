@@ -2,7 +2,7 @@ import './style.css';
 import { seedDefaults, dbAPI, Transaction, Category, Account } from './db.js';
 import { formatCurrency, formatDate } from './utils.js';
 import Chart from 'chart.js/auto';
-import { scanReceipt } from './receiptScanner.js';
+import { scanReceipt, scanInvestmentReceipt } from './receiptScanner.js';
 import { parseCSV, importMappedTransactions } from './csvImporter.js';
 
 // Setup App Shell
@@ -45,6 +45,10 @@ if (appContainer) {
       <a href="#/analytics" class="nav-item" data-path="/analytics">
         <i class="ph ph-chart-bar"></i>
         <span>Estadísticas</span>
+      </a>
+      <a href="#/investments" class="nav-item" data-path="/investments">
+        <i class="ph ph-trend-up"></i>
+        <span>Inversiones</span>
       </a>
     </nav>
     
@@ -216,7 +220,238 @@ const routes: Record<string, (container: HTMLElement) => Promise<void>> = {
   '/budget': renderBudget,
   '/accounts': renderAccounts,
   '/analytics': renderAnalytics,
+  '/investments': renderInvestments,
 };
+
+async function renderInvestments(container: HTMLElement): Promise<void> {
+  container.innerHTML = `
+    <h2 class="mb-4">Herramientas de Inversión</h2>
+    
+    <!-- Calculadora Plazo Fijo Tradicional -->
+    <div class="card glass mb-4">
+      <div class="flex justify-between align-center mb-4">
+        <h3 style="margin: 0; font-weight: 500;">Plazo Fijo Tradicional</h3>
+        <button class="btn btn-primary" id="scan-investment-btn" style="padding: 6px 12px; font-size: 0.9rem;">
+          <i class="ph ph-scan"></i> Escanear
+        </button>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">Calcula el rendimiento de tu plazo fijo o fondo común.</p>
+      
+      <div class="form-group">
+        <label>Capital a Invertir ($)</label>
+        <input type="number" class="form-control" id="inv-capital" placeholder="0.00" step="0.01">
+      </div>
+      <div class="form-group flex justify-between" style="gap: 10px;">
+        <div class="w-100">
+          <label>TNA (%)</label>
+          <input type="number" class="form-control" id="inv-tna" placeholder="0.00" step="0.01">
+        </div>
+        <div class="w-100">
+          <label>Plazo (Días)</label>
+          <input type="number" class="form-control" id="inv-days" placeholder="30">
+        </div>
+      </div>
+      
+      <div style="background: var(--bg-elevated); padding: 16px; border-radius: var(--radius-md); margin-top: 16px; border: 1px solid var(--border-color);">
+        <div class="flex justify-between align-center mb-2">
+          <span style="color: var(--text-secondary);">Interés Ganado:</span>
+          <strong id="inv-interest" style="color: var(--accent-success);">+ $0.00</strong>
+        </div>
+        <div class="flex justify-between align-center">
+          <span style="color: var(--text-secondary);">Monto Final:</span>
+          <strong id="inv-total" style="font-size: 1.1rem;">$0.00</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calculadora Plazo Fijo UVA -->
+    <div class="card glass mb-4">
+      <div class="flex justify-between align-center mb-4">
+        <h3 style="margin: 0; font-weight: 500;">Estimador Plazo Fijo UVA</h3>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">Calcula tu retorno basado en una estimación de inflación (ej. 3% mensual).</p>
+      
+      <div class="form-group">
+        <label>Capital ($)</label>
+        <input type="number" class="form-control" id="uva-capital" placeholder="0.00" step="0.01">
+      </div>
+      <div class="form-group flex justify-between" style="gap: 10px;">
+        <div class="w-100">
+          <label>Inflación Mensual Est. (%)</label>
+          <input type="number" class="form-control" id="uva-inf" placeholder="3.0" step="0.1">
+        </div>
+        <div class="w-100">
+          <label>Plazo (Días)</label>
+          <input type="number" class="form-control" id="uva-days" placeholder="180">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>TNA Adicional (%) <span style="font-size: 0.75rem; color: var(--text-secondary);">(Ej. 1%)</span></label>
+        <input type="number" class="form-control" id="uva-tna" placeholder="1.0" step="0.1">
+      </div>
+      
+      <div style="background: var(--bg-elevated); padding: 16px; border-radius: var(--radius-md); margin-top: 16px; border: 1px solid var(--border-color);">
+        <div class="flex justify-between align-center mb-2">
+          <span style="color: var(--text-secondary);">Rendimiento Est.:</span>
+          <strong id="uva-interest" style="color: var(--accent-success);">+ $0.00</strong>
+        </div>
+        <div class="flex justify-between align-center">
+          <span style="color: var(--text-secondary);">Monto Final Est.:</span>
+          <strong id="uva-total" style="font-size: 1.1rem;">$0.00</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calculadora Obligaciones Negociables -->
+    <div class="card glass mb-4">
+      <div class="flex justify-between align-center mb-4">
+        <h3 style="margin: 0; font-weight: 500;">Calculadora de Bonos / ONs</h3>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">Calcula el flujo anual de un bono u Obligación Negociable (simplificado).</p>
+      
+      <div class="form-group">
+        <label>Valor Nominal a Comprar (Ej. USD)</label>
+        <input type="number" class="form-control" id="on-nominal" placeholder="1000">
+      </div>
+      <div class="form-group flex justify-between" style="gap: 10px;">
+        <div class="w-100">
+          <label>Precio Compra (%)</label>
+          <input type="number" class="form-control" id="on-price" placeholder="105" step="0.1">
+        </div>
+        <div class="w-100">
+          <label>Tasa Cupón Anual (%)</label>
+          <input type="number" class="form-control" id="on-coupon" placeholder="8.5" step="0.1">
+        </div>
+      </div>
+      
+      <div style="background: var(--bg-elevated); padding: 16px; border-radius: var(--radius-md); margin-top: 16px; border: 1px solid var(--border-color);">
+        <div class="flex justify-between align-center mb-2">
+          <span style="color: var(--text-secondary);">Costo de Inversión:</span>
+          <strong id="on-cost">0.00</strong>
+        </div>
+        <div class="flex justify-between align-center mb-2">
+          <span style="color: var(--text-secondary);">Renta Anual:</span>
+          <strong id="on-annual" style="color: var(--accent-success);">+ 0.00</strong>
+        </div>
+        <div class="flex justify-between align-center">
+          <span style="color: var(--text-secondary);">Current Yield (Rendimiento Real):</span>
+          <strong id="on-yield" style="font-size: 1.1rem;">0.00%</strong>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Bind Traditional Calculator
+  const bindTraditional = () => {
+    const capitalEl = document.getElementById('inv-capital') as HTMLInputElement | null;
+    const tnaEl = document.getElementById('inv-tna') as HTMLInputElement | null;
+    const daysEl = document.getElementById('inv-days') as HTMLInputElement | null;
+    const interestEl = document.getElementById('inv-interest');
+    const totalEl = document.getElementById('inv-total');
+
+    const updateCalc = () => {
+      const capital = parseFloat(capitalEl?.value || '0');
+      const tna = parseFloat(tnaEl?.value || '0');
+      const days = parseInt(daysEl?.value || '0', 10);
+      
+      if (capital > 0 && tna > 0 && days > 0 && interestEl && totalEl) {
+        const interest = capital * (tna / 100) * (days / 365);
+        interestEl.innerText = '+ ' + formatCurrency(interest);
+        totalEl.innerText = formatCurrency(capital + interest);
+      } else if (interestEl && totalEl) {
+        interestEl.innerText = '+ $0.00';
+        totalEl.innerText = '$0.00';
+      }
+    };
+    capitalEl?.addEventListener('input', updateCalc);
+    tnaEl?.addEventListener('input', updateCalc);
+    daysEl?.addEventListener('input', updateCalc);
+  };
+
+  // Bind UVA Estimator
+  const bindUVA = () => {
+    const capitalEl = document.getElementById('uva-capital') as HTMLInputElement | null;
+    const infEl = document.getElementById('uva-inf') as HTMLInputElement | null;
+    const daysEl = document.getElementById('uva-days') as HTMLInputElement | null;
+    const tnaEl = document.getElementById('uva-tna') as HTMLInputElement | null;
+    const interestEl = document.getElementById('uva-interest');
+    const totalEl = document.getElementById('uva-total');
+
+    const updateCalc = () => {
+      const capital = parseFloat(capitalEl?.value || '0');
+      const infMonthly = parseFloat(infEl?.value || '0');
+      const days = parseInt(daysEl?.value || '0', 10);
+      const tna = parseFloat(tnaEl?.value || '0'); // extra fixed yield
+      
+      if (capital > 0 && days > 0 && interestEl && totalEl) {
+        const months = days / 30;
+        // Compound inflation
+        const totalInfMultiplier = Math.pow(1 + (infMonthly / 100), months);
+        const adjustedCapital = capital * totalInfMultiplier;
+        
+        // Add fixed TNA
+        const extraInterest = adjustedCapital * (tna / 100) * (days / 365);
+        const finalTotal = adjustedCapital + extraInterest;
+        const totalInterest = finalTotal - capital;
+
+        interestEl.innerText = '+ ' + formatCurrency(totalInterest);
+        totalEl.innerText = formatCurrency(finalTotal);
+      } else if (interestEl && totalEl) {
+        interestEl.innerText = '+ $0.00';
+        totalEl.innerText = '$0.00';
+      }
+    };
+    capitalEl?.addEventListener('input', updateCalc);
+    infEl?.addEventListener('input', updateCalc);
+    daysEl?.addEventListener('input', updateCalc);
+    tnaEl?.addEventListener('input', updateCalc);
+  };
+
+  // Bind ON Calculator
+  const bindON = () => {
+    const nominalEl = document.getElementById('on-nominal') as HTMLInputElement | null;
+    const priceEl = document.getElementById('on-price') as HTMLInputElement | null;
+    const couponEl = document.getElementById('on-coupon') as HTMLInputElement | null;
+    const costEl = document.getElementById('on-cost');
+    const annualEl = document.getElementById('on-annual');
+    const yieldEl = document.getElementById('on-yield');
+
+    const updateCalc = () => {
+      const nominal = parseFloat(nominalEl?.value || '0');
+      const price = parseFloat(priceEl?.value || '0'); // e.g. 105 for 105% par
+      const coupon = parseFloat(couponEl?.value || '0');
+      
+      if (nominal > 0 && price > 0 && coupon > 0 && costEl && annualEl && yieldEl) {
+        const cost = nominal * (price / 100);
+        const annualRenta = nominal * (coupon / 100);
+        const currentYield = (annualRenta / cost) * 100;
+
+        costEl.innerText = nominal.toLocaleString('es-AR') + ' (' + price + '%)';
+        annualEl.innerText = '+ ' + annualRenta.toLocaleString('es-AR');
+        yieldEl.innerText = currentYield.toFixed(2) + '%';
+      } else if (costEl && annualEl && yieldEl) {
+        costEl.innerText = '0.00';
+        annualEl.innerText = '+ 0.00';
+        yieldEl.innerText = '0.00%';
+      }
+    };
+    nominalEl?.addEventListener('input', updateCalc);
+    priceEl?.addEventListener('input', updateCalc);
+    couponEl?.addEventListener('input', updateCalc);
+  };
+
+  bindTraditional();
+  bindUVA();
+  bindON();
+
+  const scanInvBtn = document.getElementById('scan-investment-btn');
+  const invReceiptInput = document.getElementById('investmentReceiptInput') as HTMLInputElement | null;
+  if (scanInvBtn && invReceiptInput) {
+    scanInvBtn.addEventListener('click', () => {
+      invReceiptInput.click();
+    });
+  }
+}
 
 async function router(): Promise<void> {
   const path = window.location.hash.slice(1) || '/';
@@ -457,6 +692,7 @@ async function renderAccounts(container: HTMLElement): Promise<void> {
 }
 
 let chartInstance: Chart | null = null;
+let cashflowChartInstance: Chart | null = null;
 let currentAnalyticsCategory: number | null = null;
 
 async function renderAnalytics(container: HTMLElement): Promise<void> {
@@ -472,58 +708,57 @@ async function renderAnalytics(container: HTMLElement): Promise<void> {
     return map;
   }, {} as Record<number, Account>);
 
-  // Render detail view if a category is selected
+  // Prepare detail view HTML if a category is selected
+  let detailHtml = '';
   if (currentAnalyticsCategory !== null) {
     const cat = catMap[currentAnalyticsCategory] || { name: 'Desconocida', color: '#888', icon: 'ph-question' };
     const catTxs = txs.filter(tx => tx.categoryId === currentAnalyticsCategory && tx.type === 'expense').reverse();
     const totalSpent = catTxs.reduce((sum, tx) => sum + tx.amount, 0);
 
-    container.innerHTML = `
-      <div class="flex align-center mb-4" style="gap: 16px;">
-        <button class="btn" id="btn-analytics-back" style="padding: 8px; font-size: 1.2rem; background: var(--bg-elevated); border: none; color: var(--text-primary); border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-          <i class="ph ph-arrow-left"></i>
-        </button>
-        <div>
-          <h2 style="margin: 0; font-size: 1.2rem;">${cat.name}</h2>
-          <div style="color: var(--text-secondary); font-size: 0.9rem;">Total: ${formatCurrency(totalSpent)}</div>
+    detailHtml = `
+      <div class="card glass mb-4" id="category-details" style="border: 1px solid ${cat.color}50;">
+        <div class="flex align-center mb-4" style="gap: 16px;">
+          <button class="btn" id="btn-analytics-back" style="padding: 8px; font-size: 1.2rem; background: var(--bg-elevated); border: none; color: var(--text-primary); border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <i class="ph ph-x"></i>
+          </button>
+          <div>
+            <h2 style="margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+              <i class="ph ${cat.icon}" style="color: ${cat.color}"></i> ${cat.name}
+            </h2>
+            <div style="color: var(--text-secondary); font-size: 0.9rem;">Total: ${formatCurrency(totalSpent)}</div>
+          </div>
+        </div>
+        
+        ${catTxs.length === 0 ? '<div style="color: var(--text-secondary); text-align: center; padding: 20px 0;">No hay transacciones.</div>' : ''}
+        
+        <div class="list">
+          ${catTxs.map(tx => {
+            const props = getTxDisplayProps(tx, catMap, accountsMap);
+            return `
+              <div class="list-item" style="border-bottom: none; border-top: 1px solid var(--border-color);">
+                <div class="flex align-center">
+                  <div class="list-item-icon" style="color: ${props.color}; background: ${props.color}20;">
+                    <i class="ph ${props.icon}"></i>
+                  </div>
+                  <div>
+                    <div class="list-item-title">${props.title}</div>
+                    <div class="list-item-desc">${props.desc}</div>
+                  </div>
+                </div>
+                <div class="flex align-center">
+                  <div class="list-item-value ${props.valueClass}" style="margin-right: 12px;">
+                    ${props.valueText}
+                  </div>
+                  <button onclick="editTransaction(${tx.id})" style="background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center;">
+                    <i class="ph ph-pencil-simple"></i>
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('')}
         </div>
       </div>
-      
-      ${catTxs.length === 0 ? '<div style="color: var(--text-secondary); text-align: center; padding: 20px 0;">No hay transacciones.</div>' : ''}
-      
-      <div class="list pb-4">
-        ${catTxs.map(tx => {
-          const props = getTxDisplayProps(tx, catMap, accountsMap);
-          return `
-            <div class="list-item">
-              <div class="flex align-center">
-                <div class="list-item-icon" style="color: ${props.color}; background: ${props.color}20;">
-                  <i class="ph ${props.icon}"></i>
-                </div>
-                <div>
-                  <div class="list-item-title">${props.title}</div>
-                  <div class="list-item-desc">${props.desc}</div>
-                </div>
-              </div>
-              <div class="flex align-center">
-                <div class="list-item-value ${props.valueClass}" style="margin-right: 12px;">
-                  ${props.valueText}
-                </div>
-                <button onclick="editTransaction(${tx.id})" style="background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center;">
-                  <i class="ph ph-pencil-simple"></i>
-                </button>
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
     `;
-
-    document.getElementById('btn-analytics-back')?.addEventListener('click', () => {
-      currentAnalyticsCategory = null;
-      renderAnalytics(container);
-    });
-    return;
   }
 
   // Sum expenses by category
@@ -540,13 +775,73 @@ async function renderAnalytics(container: HTMLElement): Promise<void> {
     return { id: catId, name: cat.name, amount, color: cat.color };
   }).sort((a, b) => b.amount - a.amount);
 
+  // --- Cashflow Data Prep ---
+  // Group by date for the last 30 days
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+  
+  const dailyIncome: Record<string, number> = {};
+  const dailyExpense: Record<string, number> = {};
+  
+  txs.forEach(tx => {
+    if (tx.type === 'transfer') return;
+    const txDate = new Date(tx.date);
+    if (txDate >= thirtyDaysAgo) {
+      const d = tx.date; // YYYY-MM-DD
+      if (tx.type === 'income') {
+        dailyIncome[d] = (dailyIncome[d] || 0) + tx.amount;
+      } else if (tx.type === 'expense') {
+        dailyExpense[d] = (dailyExpense[d] || 0) + tx.amount;
+      }
+    }
+  });
+
+  // Generate continuous date array for the last 30 days
+  const dateLabels: string[] = [];
+  const incomeSeries: number[] = [];
+  const expenseSeries: number[] = [];
+  const netSeries: number[] = [];
+
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
+    const dStr = d.toISOString().split('T')[0];
+    dateLabels.push(d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }));
+    
+    const inc = dailyIncome[dStr] || 0;
+    const exp = dailyExpense[dStr] || 0;
+    incomeSeries.push(inc);
+    expenseSeries.push(exp);
+    netSeries.push(inc - exp);
+  }
+
   container.innerHTML = `
-    <h2 class="mb-4">Estadísticas</h2>
-    <div class="card glass text-center mb-4">
+    <div class="flex justify-between align-center mb-4">
+      <h2>Estadísticas</h2>
+    </div>
+    
+    ${detailHtml}
+
+    <div class="card glass text-center mb-4" style="${currentAnalyticsCategory !== null ? 'opacity: 0.5; pointer-events: none;' : ''}">
       <h3 style="margin-bottom: 16px; font-weight: 500;">Gastos por Categoría <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 400; display: block; margin-top: 4px;">Toca una categoría para ver detalles</span></h3>
-      ${chartData.length === 0 ? '<div style="color: var(--text-secondary); padding: 20px;">No hay suficientes datos aún.</div>' : '<canvas id="expenseChart" style="max-height: 300px; width: 100%; cursor: pointer;"></canvas>'}
+      ${chartData.length === 0 ? '<div style="color: var(--text-secondary); padding: 20px;">No hay suficientes datos aún.</div>' : '<canvas id="expenseChart" style="max-height: 250px; width: 100%; cursor: pointer;"></canvas>'}
+    </div>
+
+    <div class="card glass text-center mb-4">
+      <h3 style="margin-bottom: 16px; font-weight: 500;">Flujo de Caja <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 400; display: block; margin-top: 4px;">Últimos 30 días</span></h3>
+      <canvas id="cashflowChart" style="max-height: 250px; width: 100%;"></canvas>
     </div>
   `;
+
+  // Bind Back button for details
+  if (currentAnalyticsCategory !== null) {
+    document.getElementById('btn-analytics-back')?.addEventListener('click', () => {
+      currentAnalyticsCategory = null;
+      renderAnalytics(container);
+    });
+    // Scroll to details
+    document.getElementById('category-details')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 
   if (chartData.length > 0) {
     if (chartInstance) chartInstance.destroy();
@@ -566,8 +861,9 @@ async function renderAnalytics(container: HTMLElement): Promise<void> {
           },
           options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
-              legend: { position: 'bottom', labels: { color: '#e6edf3' } }
+              legend: { position: 'right', labels: { color: '#e6edf3' } }
             },
             onClick: (e, elements) => {
               if (elements && elements.length > 0) {
@@ -582,6 +878,71 @@ async function renderAnalytics(container: HTMLElement): Promise<void> {
           }
         });
       }
+    }
+  }
+
+  // Render Cashflow Line Chart
+  if (cashflowChartInstance) cashflowChartInstance.destroy();
+  const cfCanvas = document.getElementById('cashflowChart') as HTMLCanvasElement | null;
+  if (cfCanvas) {
+    const ctx = cfCanvas.getContext('2d');
+    if (ctx) {
+      cashflowChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: dateLabels,
+          datasets: [
+            {
+              label: 'Ingresos',
+              data: incomeSeries,
+              borderColor: '#238636',
+              backgroundColor: '#23863620',
+              borderWidth: 2,
+              tension: 0.3,
+              fill: true,
+              pointRadius: 0,
+              pointHitRadius: 10,
+            },
+            {
+              label: 'Gastos',
+              data: expenseSeries,
+              borderColor: '#f85149',
+              backgroundColor: '#f8514920',
+              borderWidth: 2,
+              tension: 0.3,
+              fill: true,
+              pointRadius: 0,
+              pointHitRadius: 10,
+            },
+            {
+              label: 'Neto',
+              data: netSeries,
+              borderColor: '#2f81f7',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              tension: 0.3,
+              fill: false,
+              pointRadius: 0,
+              pointHitRadius: 10,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#e6edf3', usePointStyle: true } }
+          },
+          scales: {
+            x: { ticks: { color: '#888', maxTicksLimit: 6 }, grid: { color: '#333' } },
+            y: { ticks: { color: '#888' }, grid: { color: '#333' } }
+          }
+        }
+      });
     }
   }
 }
@@ -1233,8 +1594,61 @@ async function init(): Promise<void> {
 
   // --- OCR Logic ---
   const receiptInput = document.getElementById('receiptInput') as HTMLInputElement | null;
+  const invReceiptInput = document.getElementById('investmentReceiptInput') as HTMLInputElement | null;
   const loadingOverlay = document.getElementById('loading-overlay');
+  const loadingText = document.getElementById('loading-text');
   
+  if (invReceiptInput && loadingOverlay && loadingText) {
+    invReceiptInput.addEventListener('change', async (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      const file = target.files ? target.files[0] : null;
+      if (!file) return;
+      
+      loadingText.innerText = 'Analizando Inversión...';
+      loadingOverlay.classList.add('active');
+      try {
+        const data = await scanInvestmentReceipt(file);
+        
+        // Fill out the investment calculators
+        const capitalEl = document.getElementById('inv-capital') as HTMLInputElement | null;
+        const tnaEl = document.getElementById('inv-tna') as HTMLInputElement | null;
+        const daysEl = document.getElementById('inv-days') as HTMLInputElement | null;
+        
+        if (data.capital) {
+          if (capitalEl) capitalEl.value = data.capital.toString();
+          const uvaCapitalEl = document.getElementById('uva-capital') as HTMLInputElement | null;
+          if (uvaCapitalEl) { uvaCapitalEl.value = data.capital.toString(); uvaCapitalEl.dispatchEvent(new Event('input')); }
+          const onNominalEl = document.getElementById('on-nominal') as HTMLInputElement | null;
+          if (onNominalEl) { onNominalEl.value = data.capital.toString(); onNominalEl.dispatchEvent(new Event('input')); }
+        }
+        
+        if (data.tna) {
+          if (tnaEl) tnaEl.value = data.tna.toString();
+          const uvaTnaEl = document.getElementById('uva-tna') as HTMLInputElement | null;
+          if (uvaTnaEl) uvaTnaEl.value = data.tna.toString();
+          const onCouponEl = document.getElementById('on-coupon') as HTMLInputElement | null;
+          if (onCouponEl) onCouponEl.value = data.tna.toString();
+        }
+        
+        if (data.days) {
+          if (daysEl) daysEl.value = data.days.toString();
+          const uvaDaysEl = document.getElementById('uva-days') as HTMLInputElement | null;
+          if (uvaDaysEl) uvaDaysEl.value = data.days.toString();
+        }
+        
+        // Trigger manual input event to recalculate
+        if (capitalEl) capitalEl.dispatchEvent(new Event('input'));
+        
+      } catch (err: any) {
+        alert("Fallo al leer el comprobante: " + err.message);
+      } finally {
+        loadingOverlay.classList.remove('active');
+        loadingText.innerText = 'Procesando...';
+        invReceiptInput.value = ''; // reset
+      }
+    });
+  }
+
   if (receiptInput && loadingOverlay) {
     receiptInput.addEventListener('change', async (e: Event) => {
       const target = e.target as HTMLInputElement;

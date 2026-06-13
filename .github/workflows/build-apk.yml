@@ -33,6 +33,11 @@ jobs:
       - name: Add Capacitor Android Platform
         run: npx cap add android
         
+      - name: Generate App Icons
+        run: |
+          npm install -g @capacitor/assets
+          npx capacitor-assets generate --iconBackgroundColor '#121212' --iconBackgroundColorDark '#121212' --splashBackgroundColor '#121212' --splashBackgroundColorDark '#121212'
+          
       - name: Sync Capacitor
         run: npx cap sync android
         

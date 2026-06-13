@@ -1,36 +1,36 @@
 :root {
-  /* Core Colors (Solarized Dark) */
-  --bg-color: #002b36;
-  --bg-surface: #073642;
-  --bg-elevated: #586e75;
+  /* Core Colors (Standard Dark) */
+  --bg-color: #121212;
+  --bg-surface: #1e1e1e;
+  --bg-elevated: #2d2d2d;
   
-  --text-primary: #93a1a1;
-  --text-secondary: #657b83;
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
   
-  --accent-primary: #859900; /* Solarized Green */
-  --accent-hover: #718200;
-  --accent-danger: #dc322f; /* Solarized Red */
-  --accent-warning: #b58900; /* Solarized Yellow */
-  --accent-blue: #268bd2; /* Solarized Blue */
+  --accent-primary: #10b981; /* Emerald Green */
+  --accent-hover: #059669;
+  --accent-danger: #ef4444; /* Red */
+  --accent-warning: #f59e0b; /* Amber */
+  --accent-blue: #3b82f6; /* Blue */
 
   /* Typography */
   --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   
   /* Borders and Shadows */
-  --border-color: #586e75;
+  --border-color: #374151;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
   --radius-pill: 9999px;
   
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
-  --shadow-lg: 0 10px 30px rgba(0,0,0,0.4);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.6);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,0.8);
 
   /* Glassmorphism */
-  --glass-bg: rgba(7, 54, 66, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.05);
+  --glass-bg: rgba(30, 30, 30, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
 
   /* Layout */
   --nav-height: 70px;

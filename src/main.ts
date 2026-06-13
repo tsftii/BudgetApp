@@ -159,7 +159,12 @@ if (appContainer) {
       <div class="modal-content">
         <div class="modal-header">
           <h2 class="modal-title">Nueva Transacción</h2>
-          <button class="modal-close" id="close-tx-modal"><i class="ph ph-x"></i></button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn" type="button" id="modal-scan-btn" style="padding: 6px 12px; font-size: 0.85rem; background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-primary);">
+              <i class="ph ph-camera"></i> Escanear
+            </button>
+            <button class="modal-close" type="button" id="close-tx-modal"><i class="ph ph-x"></i></button>
+          </div>
         </div>
         <form id="tx-form">
           <input type="hidden" id="tx-id" value="">
@@ -801,9 +806,11 @@ async function renderAnalytics(container: HTMLElement): Promise<void> {
   const dateLabels: string[] = [];
   const incomeSeries: number[] = [];
   const expenseSeries: number[] = [];
-  const netSeries: number[] = [];
+  const netSeriesReversed: number[] = [];
+  
+  let currentNet = accounts.reduce((s, a) => s + a.balance, 0);
 
-  for (let i = 29; i >= 0; i--) {
+  for (let i = 0; i < 30; i++) {
     const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
     const dStr = d.toISOString().split('T')[0];
     dateLabels.push(d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }));
@@ -812,8 +819,16 @@ async function renderAnalytics(container: HTMLElement): Promise<void> {
     const exp = dailyExpense[dStr] || 0;
     incomeSeries.push(inc);
     expenseSeries.push(exp);
-    netSeries.push(inc - exp);
+    
+    netSeriesReversed.push(currentNet);
+    // Walk backwards for the cumulative net
+    currentNet = currentNet - inc + exp;
   }
+  
+  dateLabels.reverse();
+  incomeSeries.reverse();
+  expenseSeries.reverse();
+  const netSeries = netSeriesReversed.reverse();
 
   container.innerHTML = `
     <div class="flex justify-between align-center mb-4">
@@ -1012,6 +1027,14 @@ const modal = document.getElementById('tx-modal');
 const openModalBtn = document.getElementById('add-tx-btn');
 const closeModalBtn = document.getElementById('close-tx-modal');
 const txForm = document.getElementById('tx-form') as HTMLFormElement | null;
+
+const modalScanBtn = document.getElementById('modal-scan-btn');
+if (modalScanBtn) {
+  modalScanBtn.addEventListener('click', () => {
+    const receiptInput = document.getElementById('receiptInput') as HTMLInputElement | null;
+    if (receiptInput) receiptInput.click();
+  });
+}
 
 async function populateCategories(typeFilter: 'expense' | 'income' | 'transfer'): Promise<void> {
   const select = document.getElementById('tx-category') as HTMLSelectElement | null;

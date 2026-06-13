@@ -1,55 +1,55 @@
 :root {
-  /* Core Colors (Standard Dark) */
-  --bg-color: #121212;
-  --bg-surface: #1e1e1e;
-  --bg-elevated: #2d2d2d;
+  /* Core Colors (Warm Dark - Paper Mario) */
+  --bg-color: #2b2522;
+  --bg-surface: #3a332f;
+  --bg-elevated: #4a423d;
   
-  --text-primary: #f3f4f6;
-  --text-secondary: #9ca3af;
+  --text-primary: #f2ebe3;
+  --text-secondary: #baafa4;
   
-  --accent-primary: #10b981; /* Emerald Green */
-  --accent-hover: #059669;
-  --accent-danger: #ef4444; /* Red */
-  --accent-warning: #f59e0b; /* Amber */
-  --accent-blue: #3b82f6; /* Blue */
+  --accent-primary: #a1c181; /* Soft green */
+  --accent-hover: #8cb06b;
+  --accent-danger: #e07a5f; /* Soft terracotta */
+  --accent-warning: #f4a261; /* Soft orange */
+  --accent-blue: #6d9dc5; /* Soft blue */
 
   /* Typography */
-  --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-family-body: 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-family-heading: 'Fredoka', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   
-  /* Borders and Shadows */
-  --border-color: #374151;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  /* Borders and Shadows (Paper Mario Style) */
+  --border-color: #1a1614; /* Very dark for outline effect */
+  --border-width: 3px;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 32px;
+  --radius-xl: 40px;
   --radius-pill: 9999px;
   
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.6);
-  --shadow-lg: 0 10px 30px rgba(0,0,0,0.8);
-
-  /* Glassmorphism */
-  --glass-bg: rgba(30, 30, 30, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  /* Solid offset shadows for paper cutout feel */
+  --shadow-sm: 2px 2px 0px rgba(0,0,0,0.4);
+  --shadow-md: 4px 4px 0px rgba(0,0,0,0.4);
+  --shadow-lg: 6px 6px 0px rgba(0,0,0,0.4);
 
   /* Layout */
-  --nav-height: 70px;
+  --nav-height: 80px; /* Taller for One UI feel */
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 [data-theme="light"] {
-  /* Core Colors (Solarized Light) */
-  --bg-color: #fdf6e3;
-  --bg-surface: #eee8d5;
-  --bg-elevated: #e6dfcb;
+  /* Core Colors (Warm Light - Paper Mario) */
+  --bg-color: #fdfbf7;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f2ece4;
   
-  --text-primary: #586e75;
-  --text-secondary: #839496;
+  --text-primary: #3a342f; /* Darkened for better contrast */
+  --text-secondary: #6c6259; /* Darkened for better contrast */
   
-  --border-color: #93a1a1;
+  --border-color: #38322e; /* Dark solid outline */
   
-  --glass-bg: rgba(238, 232, 213, 0.7);
-  --glass-border: rgba(0, 0, 0, 0.05);
+  --shadow-sm: 2px 2px 0px rgba(0,0,0,0.15);
+  --shadow-md: 4px 4px 0px rgba(0,0,0,0.15);
+  --shadow-lg: 6px 6px 0px rgba(0,0,0,0.15);
 }
 
 * {
@@ -59,14 +59,24 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+#theme-toggle:active {
+  transform: translateY(4px) scale(0.95);
+  box-shadow: none !important;
+}
+
 body {
-  font-family: var(--font-family);
+  font-family: var(--font-family-body);
   background-color: var(--bg-color);
   color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   padding-bottom: calc(var(--nav-height) + var(--safe-area-inset-bottom) + 20px);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family-heading);
+  font-weight: 500;
 }
 
 /* App Container */
@@ -99,22 +109,28 @@ body {
   padding: 0 20px;
 }
 
-/* Cards (Glassmorphism) */
+/* Cards (Paper Mario Cutouts) */
 .card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-color);
+  border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 20px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   box-shadow: var(--shadow-md);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.card:hover {
+  transform: scale(1.01) translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+.card:active {
+  transform: scale(0.98) translateY(2px);
+  box-shadow: var(--shadow-sm);
 }
 
 .card.glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
+  background: var(--bg-surface);
+  /* Removed glassmorphism to keep it flat and solid like Paper Mario */
 }
 
 /* Typography Helpers */
@@ -157,54 +173,57 @@ body {
   gap: 8px;
   background: var(--bg-elevated);
   color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 12px 20px;
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-pill);
+  padding: 12px 24px;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s;
 }
-.btn:hover, .btn:active {
-  background: var(--border-color);
+.btn:active {
+  transform: translateY(2px) scale(0.98);
+  box-shadow: none;
 }
 .btn-primary {
   background: var(--accent-primary);
-  color: #fff;
-  border: none;
+  color: var(--bg-color);
 }
-.btn-primary:hover, .btn-primary:active {
+.btn-primary:active {
   background: var(--accent-hover);
 }
 .btn-fab {
-  position: fixed;
-  bottom: calc(var(--nav-height) + var(--safe-area-inset-bottom) + 20px);
-  right: 20px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-pill);
   background: var(--accent-primary);
-  color: white;
+  color: var(--bg-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  box-shadow: var(--shadow-lg);
-  border: none;
+  font-size: 1.8rem;
+  box-shadow: var(--shadow-md);
+  border: var(--border-width) solid var(--border-color);
   cursor: pointer;
-  z-index: 50;
-  transition: transform 0.2s;
+  z-index: 101;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .btn-fab:active {
-  transform: scale(0.9);
+  transform: translateX(-50%) scale(0.9) translateY(4px);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Lists */
 .list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 .list-item {
   display: flex;
@@ -213,18 +232,39 @@ body {
   padding: 16px;
   background: var(--bg-surface);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
+  border: var(--border-width) solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.list-item:hover {
+  transform: scale(1.01) translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.list-item:active {
+  transform: scale(0.99) translateY(2px);
+  box-shadow: none;
 }
 .list-item-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-pill);
-  background: var(--bg-elevated);
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface) !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.6rem;
   margin-right: 16px;
+  border: var(--border-width) solid var(--border-color);
+  box-shadow: 
+    inset 0 0 0 3px var(--bg-surface),
+    3px 3px 0px rgba(0,0,0,0.3);
+  transform: rotate(-2deg);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  z-index: 2;
+}
+.list-item:hover .list-item-icon, .card:hover .list-item-icon {
+  transform: rotate(2deg) scale(1.05);
 }
 .list-item-content {
   flex: 1;
@@ -244,24 +284,26 @@ body {
 
 /* Forms */
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 .form-group label {
   display: block;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 .form-control {
   width: 100%;
   background: var(--bg-elevated);
-  border: 1px solid var(--border-color);
+  border: var(--border-width) solid var(--border-color);
   color: var(--text-primary);
-  padding: 14px 16px;
-  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  border-radius: var(--radius-lg);
   font-family: inherit;
   font-size: 1rem;
   outline: none;
+  box-shadow: inset 2px 2px 0px rgba(0,0,0,0.1);
   transition: border-color 0.2s;
 }
 .form-control:focus {
@@ -271,18 +313,17 @@ body {
 /* Bottom Navigation */
 .bottom-nav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: calc(var(--nav-height) + var(--safe-area-inset-bottom));
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--glass-border);
+  bottom: calc(var(--safe-area-inset-bottom) + 16px);
+  left: 20px;
+  right: 20px;
+  height: var(--nav-height);
+  background: var(--bg-surface);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-lg);
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding-bottom: var(--safe-area-inset-bottom);
   z-index: 100;
 }
 .nav-item {
@@ -410,12 +451,13 @@ body {
   transition: all 0.2s;
 }
 .icon-swatch:hover {
-  background: var(--border-color);
-  color: var(--text-primary);
+  background: var(--text-primary);
+  color: var(--bg-color);
 }
 .icon-swatch.active {
   background: var(--accent-primary);
-  color: #fff;
+  color: var(--bg-color);
+  border-color: var(--border-color);
 }
 
 /* Responsive Adjustments for Mobile */

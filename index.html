@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#121212" />
-    <title>PresupuestoApp</title>
-    <!-- Google Fonts: Outfit -->
+    <title>Origami Wallet</title>
+    <!-- Google Fonts: Fredoka (Headers) & Quicksand (Body) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="manifest" href="/manifest.webmanifest">
@@ -24,6 +24,7 @@
     <input type="file" accept="image/*" id="receiptInput" style="position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; z-index: -1;">
     <input type="file" accept="image/*" id="investmentReceiptInput" style="position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; z-index: -1;">
     <input type="file" accept=".csv" id="csvInput" style="position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; z-index: -1;">
+    <input type="file" accept=".bgt" id="backupFileInput" style="position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; z-index: -1;">
 
     <!-- CSV Mapping Modal -->
     <div class="modal-overlay" id="csv-modal">
@@ -33,7 +34,7 @@
           <button class="modal-close" id="close-csv-modal"><i class="ph ph-x"></i></button>
         </div>
         <p style="margin-bottom: 16px; font-size: 0.9rem; color: var(--text-secondary);">Detectamos las siguientes columnas. Por favor, asigne cada una al campo correcto de la transacción.</p>
-        <div class="card glass mb-4" style="padding: 12px; font-family: monospace; font-size: 0.85rem; overflow-x: auto; white-space: nowrap;" id="csv-preview">
+        <div class="card mb-4" style="padding: 12px; font-family: monospace; font-size: 0.85rem; overflow-x: auto; white-space: nowrap;" id="csv-preview">
           <!-- Preview data will go here -->
         </div>
         <form id="csv-form">
@@ -56,6 +57,55 @@
             <select class="form-control" id="csv-account" required></select>
           </div>
           <button type="submit" class="btn btn-primary w-100 mt-4">Importar Transacciones</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Backup Export Modal -->
+    <div class="modal-overlay" id="backup-export-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Exportar Respaldo Seguro</h2>
+          <button class="modal-close" id="close-backup-export-modal"><i class="ph ph-x"></i></button>
+        </div>
+        <p style="margin-bottom: 16px; font-size: 0.9rem; color: var(--text-secondary);">Tu respaldo será encriptado utilizando el algoritmo AES-GCM. Solo podrá ser restaurado utilizando esta misma contraseña.</p>
+        <form id="backup-export-form">
+          <div class="form-group">
+            <label>Contraseña de Encriptación</label>
+            <input type="password" class="form-control" id="backup-export-pwd" required placeholder="Escribe una contraseña segura">
+          </div>
+          <button type="submit" class="btn btn-primary w-100 mt-4">
+            <i class="ph-fill ph-lock-key"></i> Encriptar y Descargar
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Backup Import Modal -->
+    <div class="modal-overlay" id="backup-import-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Restaurar Respaldo</h2>
+          <button class="modal-close" id="close-backup-import-modal"><i class="ph ph-x"></i></button>
+        </div>
+        <p style="margin-bottom: 16px; font-size: 0.9rem; color: var(--accent-danger);"><strong>ADVERTENCIA:</strong> Restaurar un respaldo eliminará y reemplazará todos tus datos actuales.</p>
+        
+        <div style="margin-bottom: 16px;">
+          <button type="button" class="btn w-100" id="btn-select-backup" style="background: var(--bg-surface); border: var(--border-width) dashed var(--border-color); color: var(--text-primary); padding: 16px;">
+            <i class="ph ph-upload-simple" style="font-size: 1.5rem; margin-bottom: 8px; display: block;"></i>
+            Seleccionar archivo .bgt
+          </button>
+          <div id="backup-import-filename" style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; margin-top: 8px;">Ningún archivo seleccionado</div>
+        </div>
+
+        <form id="backup-import-form">
+          <div class="form-group">
+            <label>Contraseña de Desencriptación</label>
+            <input type="password" class="form-control" id="backup-import-pwd" required placeholder="Escribe la contraseña original">
+          </div>
+          <button type="submit" class="btn btn-primary w-100 mt-4" style="background: var(--accent-danger); color: var(--bg-color);">
+            <i class="ph-fill ph-warning"></i> Sobreescribir Datos
+          </button>
         </form>
       </div>
     </div>

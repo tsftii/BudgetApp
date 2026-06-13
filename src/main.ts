@@ -4,21 +4,19 @@ import { formatCurrency, formatDate } from './utils.js';
 import Chart from 'chart.js/auto';
 import { scanReceipt, scanInvestmentReceipt } from './receiptScanner.js';
 import { parseCSV, importMappedTransactions } from './csvImporter.js';
+import { exportBackup, importBackup } from './backupManager.js';
 
 // Setup App Shell
 const appContainer = document.querySelector('#app');
 if (appContainer) {
   appContainer.innerHTML = `
     <div class="header">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <h1>BudgetApp</h1>
-        <button id="theme-toggle" style="background: none; border: none; color: var(--text-primary); cursor: pointer; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; margin-left: 8px;">
-          <i class="ph ph-sun"></i>
+      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+        <h1>Origami Wallet</h1>
+        <button id="theme-toggle" style="background: var(--bg-surface); border: var(--border-width) solid var(--border-color); color: var(--text-primary); cursor: pointer; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: var(--radius-pill); box-shadow: var(--shadow-sm); transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);">
+          <i class="ph-fill ph-sun" id="theme-icon" style="transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);"></i>
         </button>
       </div>
-      <button class="btn-fab" id="add-tx-btn" style="position: static; width: 40px; height: 40px; font-size: 1.2rem;">
-        <i class="ph ph-plus"></i>
-      </button>
     </div>
     
     <div id="router-view" class="container">
@@ -27,28 +25,28 @@ if (appContainer) {
 
     <nav class="bottom-nav">
       <a href="#/" class="nav-item active" data-path="/">
-        <i class="ph ph-house"></i>
+        <i class="ph-fill ph-house"></i>
         <span>Inicio</span>
       </a>
       <a href="#/transactions" class="nav-item" data-path="/transactions">
-        <i class="ph ph-list-dashes"></i>
+        <i class="ph-fill ph-list-dashes"></i>
         <span>Historial</span>
       </a>
-      <a href="#/budget" class="nav-item" data-path="/budget">
-        <i class="ph ph-chart-pie-slice"></i>
-        <span>Presupuesto</span>
-      </a>
-      <a href="#/accounts" class="nav-item" data-path="/accounts">
-        <i class="ph ph-wallet"></i>
-        <span>Cuentas</span>
-      </a>
+      
+      <!-- Spacer for FAB -->
+      <div style="width: 64px;"></div>
+      
+      <button class="btn-fab" id="add-tx-btn">
+        <i class="ph ph-plus" style="font-weight: bold;"></i>
+      </button>
+      
       <a href="#/analytics" class="nav-item" data-path="/analytics">
-        <i class="ph ph-chart-bar"></i>
+        <i class="ph-fill ph-chart-bar"></i>
         <span>Estadísticas</span>
       </a>
-      <a href="#/investments" class="nav-item" data-path="/investments">
-        <i class="ph ph-trend-up"></i>
-        <span>Inversiones</span>
+      <a href="#/accounts" class="nav-item" data-path="/accounts">
+        <i class="ph-fill ph-wallet"></i>
+        <span>Cuentas</span>
       </a>
     </nav>
     
@@ -104,6 +102,32 @@ if (appContainer) {
               <div class="icon-swatch" data-icon="ph-airplane"><i class="ph ph-airplane"></i></div>
               <div class="icon-swatch" data-icon="ph-pill"><i class="ph ph-pill"></i></div>
               <div class="icon-swatch" data-icon="ph-paw-print"><i class="ph ph-paw-print"></i></div>
+              <!-- 12 Nuevos Iconos -->
+              <div class="icon-swatch" data-icon="ph-coffee"><i class="ph ph-coffee"></i></div>
+              <div class="icon-swatch" data-icon="ph-train"><i class="ph ph-train"></i></div>
+              <div class="icon-swatch" data-icon="ph-book"><i class="ph ph-book"></i></div>
+              <div class="icon-swatch" data-icon="ph-game-controller"><i class="ph ph-game-controller"></i></div>
+              <div class="icon-swatch" data-icon="ph-basketball"><i class="ph ph-basketball"></i></div>
+              <div class="icon-swatch" data-icon="ph-music-note"><i class="ph ph-music-note"></i></div>
+              <div class="icon-swatch" data-icon="ph-t-shirt"><i class="ph ph-t-shirt"></i></div>
+              <div class="icon-swatch" data-icon="ph-gift"><i class="ph ph-gift"></i></div>
+              <div class="icon-swatch" data-icon="ph-baby"><i class="ph ph-baby"></i></div>
+              <div class="icon-swatch" data-icon="ph-wrench"><i class="ph ph-wrench"></i></div>
+              <div class="icon-swatch" data-icon="ph-graduation-cap"><i class="ph ph-graduation-cap"></i></div>
+              <div class="icon-swatch" data-icon="ph-bag"><i class="ph ph-bag"></i></div>
+              <!-- Otros 12 Iconos -->
+              <div class="icon-swatch" data-icon="ph-device-mobile"><i class="ph ph-device-mobile"></i></div>
+              <div class="icon-swatch" data-icon="ph-television"><i class="ph ph-television"></i></div>
+              <div class="icon-swatch" data-icon="ph-drop"><i class="ph ph-drop"></i></div>
+              <div class="icon-swatch" data-icon="ph-fire"><i class="ph ph-fire"></i></div>
+              <div class="icon-swatch" data-icon="ph-film-strip"><i class="ph ph-film-strip"></i></div>
+              <div class="icon-swatch" data-icon="ph-bicycle"><i class="ph ph-bicycle"></i></div>
+              <div class="icon-swatch" data-icon="ph-scissors"><i class="ph ph-scissors"></i></div>
+              <div class="icon-swatch" data-icon="ph-bandaids"><i class="ph ph-bandaids"></i></div>
+              <div class="icon-swatch" data-icon="ph-tooth"><i class="ph ph-tooth"></i></div>
+              <div class="icon-swatch" data-icon="ph-hamburger"><i class="ph ph-hamburger"></i></div>
+              <div class="icon-swatch" data-icon="ph-armchair"><i class="ph ph-armchair"></i></div>
+              <div class="icon-swatch" data-icon="ph-plant"><i class="ph ph-plant"></i></div>
             </div>
           </div>
           <div class="flex" style="gap: 10px;">
@@ -230,16 +254,24 @@ const routes: Record<string, (container: HTMLElement) => Promise<void>> = {
 
 async function renderInvestments(container: HTMLElement): Promise<void> {
   container.innerHTML = `
-    <h2 class="mb-4">Herramientas de Inversión</h2>
+    <div style="text-align: center; margin-bottom: 16px;">
+      <h2 style="margin: 0 0 12px 0;">Herramientas</h2>
+      <button class="btn btn-primary" id="scan-investment-btn" style="padding: 10px 20px; font-size: 1rem; display: inline-flex; align-items: center; gap: 8px; border-radius: var(--radius-pill); box-shadow: var(--shadow-sm);">
+        <i class="ph ph-camera"></i> Escanear Comprobante
+      </button>
+    </div>
+    
+    <div class="form-group mb-4">
+      <select class="form-control" id="inv-tool-selector" style="font-weight: 600; font-size: 1.05rem; background-color: var(--accent-primary); color: var(--bg-color); border-color: var(--border-color);">
+        <option value="tradicional">Plazo Fijo Tradicional</option>
+        <option value="uva">Estimador Plazo Fijo UVA</option>
+        <option value="on">Calculadora de Bonos / ONs</option>
+      </select>
+    </div>
     
     <!-- Calculadora Plazo Fijo Tradicional -->
-    <div class="card glass mb-4">
-      <div class="flex justify-between align-center mb-4">
-        <h3 style="margin: 0; font-weight: 500;">Plazo Fijo Tradicional</h3>
-        <button class="btn btn-primary" id="scan-investment-btn" style="padding: 6px 12px; font-size: 0.9rem;">
-          <i class="ph ph-scan"></i> Escanear
-        </button>
-      </div>
+    <div id="tool-tradicional" class="card mb-4 inv-tool">
+      <h3 style="margin-bottom: 8px; font-weight: 500;">Plazo Fijo Tradicional</h3>
       <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">Calcula el rendimiento de tu plazo fijo o fondo común.</p>
       
       <div class="form-group">
@@ -257,7 +289,7 @@ async function renderInvestments(container: HTMLElement): Promise<void> {
         </div>
       </div>
       
-      <div style="background: var(--bg-elevated); padding: 16px; border-radius: var(--radius-md); margin-top: 16px; border: 1px solid var(--border-color);">
+      <div style="background: var(--bg-elevated); padding: 16px; border-radius: var(--radius-md); margin-top: 16px; border: var(--border-width) solid var(--border-color); box-shadow: inset 2px 2px 0px rgba(0,0,0,0.1);">
         <div class="flex justify-between align-center mb-2">
           <span style="color: var(--text-secondary);">Interés Ganado:</span>
           <strong id="inv-interest" style="color: var(--accent-success);">+ $0.00</strong>
@@ -270,10 +302,8 @@ async function renderInvestments(container: HTMLElement): Promise<void> {
     </div>
 
     <!-- Calculadora Plazo Fijo UVA -->
-    <div class="card glass mb-4">
-      <div class="flex justify-between align-center mb-4">
-        <h3 style="margin: 0; font-weight: 500;">Estimador Plazo Fijo UVA</h3>
-      </div>
+    <div id="tool-uva" class="card mb-4 inv-tool" style="display: none;">
+      <h3 style="margin-bottom: 8px; font-weight: 500;">Estimador Plazo Fijo UVA</h3>
       <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">Calcula tu retorno basado en una estimación de inflación (ej. 3% mensual).</p>
       
       <div class="form-group">
@@ -295,7 +325,7 @@ async function renderInvestments(container: HTMLElement): Promise<void> {
         <input type="number" class="form-control" id="uva-tna" placeholder="1.0" step="0.1">
       </div>
       
-      <div style="background: var(--bg-elevated); padding: 16px; border-radius: var(--radius-md); margin-top: 16px; border: 1px solid var(--border-color);">
+      <div style="background: var(--bg-elevated); padding: 16px; border-radius: var(--radius-md); margin-top: 16px; border: var(--border-width) solid var(--border-color); box-shadow: inset 2px 2px 0px rgba(0,0,0,0.1);">
         <div class="flex justify-between align-center mb-2">
           <span style="color: var(--text-secondary);">Rendimiento Est.:</span>
           <strong id="uva-interest" style="color: var(--accent-success);">+ $0.00</strong>
@@ -308,10 +338,8 @@ async function renderInvestments(container: HTMLElement): Promise<void> {
     </div>
 
     <!-- Calculadora Obligaciones Negociables -->
-    <div class="card glass mb-4">
-      <div class="flex justify-between align-center mb-4">
-        <h3 style="margin: 0; font-weight: 500;">Calculadora de Bonos / ONs</h3>
-      </div>
+    <div id="tool-on" class="card mb-4 inv-tool" style="display: none;">
+      <h3 style="margin-bottom: 8px; font-weight: 500;">Calculadora de Bonos / ONs</h3>
       <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">Calcula el flujo anual de un bono u Obligación Negociable (simplificado).</p>
       
       <div class="form-group">
@@ -329,7 +357,7 @@ async function renderInvestments(container: HTMLElement): Promise<void> {
         </div>
       </div>
       
-      <div style="background: var(--bg-elevated); padding: 16px; border-radius: var(--radius-md); margin-top: 16px; border: 1px solid var(--border-color);">
+      <div style="background: var(--bg-elevated); padding: 16px; border-radius: var(--radius-md); margin-top: 16px; border: var(--border-width) solid var(--border-color); box-shadow: inset 2px 2px 0px rgba(0,0,0,0.1);">
         <div class="flex justify-between align-center mb-2">
           <span style="color: var(--text-secondary);">Costo de Inversión:</span>
           <strong id="on-cost">0.00</strong>
@@ -339,12 +367,24 @@ async function renderInvestments(container: HTMLElement): Promise<void> {
           <strong id="on-annual" style="color: var(--accent-success);">+ 0.00</strong>
         </div>
         <div class="flex justify-between align-center">
-          <span style="color: var(--text-secondary);">Current Yield (Rendimiento Real):</span>
+          <span style="color: var(--text-secondary);">Current Yield (Rend. Real):</span>
           <strong id="on-yield" style="font-size: 1.1rem;">0.00%</strong>
         </div>
       </div>
     </div>
   `;
+
+  // Bind Tool Selector Logic
+  const toolSelector = document.getElementById('inv-tool-selector') as HTMLSelectElement | null;
+  if (toolSelector) {
+    toolSelector.addEventListener('change', () => {
+      document.querySelectorAll('.inv-tool').forEach(el => {
+        (el as HTMLElement).style.display = 'none';
+      });
+      const activeTool = document.getElementById('tool-' + toolSelector.value);
+      if (activeTool) activeTool.style.display = 'block';
+    });
+  }
 
   // Bind Traditional Calculator
   const bindTraditional = () => {
@@ -534,6 +574,18 @@ async function renderDashboard(container: HTMLElement): Promise<void> {
     return map;
   }, {} as Record<number, Account>);
 
+  const expenseCatTotals: Record<number, number> = {};
+  txs.forEach(tx => {
+    if (tx.type === 'expense' && tx.categoryId !== undefined) {
+      expenseCatTotals[tx.categoryId] = (expenseCatTotals[tx.categoryId] || 0) + tx.amount;
+    }
+  });
+  const chartData = Object.entries(expenseCatTotals).map(([catIdStr, amount]) => {
+    const catId = parseInt(catIdStr);
+    const cat = catMap[catId] || { name: 'Desconocida', color: '#888' };
+    return { id: catId, name: cat.name, amount, color: cat.color };
+  }).sort((a, b) => b.amount - a.amount);
+
   container.innerHTML = `
     <div class="balance-display">
       <div class="balance-label">Balance Total</div>
@@ -542,10 +594,28 @@ async function renderDashboard(container: HTMLElement): Promise<void> {
       </div>
     </div>
     
-    <div class="card glass">
+    <div class="card" style="cursor: pointer; padding-bottom: 16px;" onclick="window.location.hash='#/analytics'">
+      <h3 style="font-weight: 500; margin-bottom: 16px; font-size: 1.1rem; text-align: center; margin-top: 0;">Resumen de Gastos</h3>
+      <div style="height: 180px; margin-bottom: 24px; display: flex; justify-content: center;">
+        ${chartData.length === 0 ? '<div style="color: var(--text-secondary); align-self: center;">No hay gastos aún</div>' : '<canvas id="dashboardChart" style="max-height: 180px; width: 100%;"></canvas>'}
+      </div>
+      
+      ${chartData.length > 0 ? `
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 8px;">
+        ${chartData.map(d => `
+          <div class="flex align-center" style="font-size: 0.9rem;">
+            <div style="width: 14px; height: 14px; border-radius: 4px; background: ${d.color}; margin-right: 8px; border: 2px solid var(--border-color); flex-shrink: 0;"></div>
+            <span style="color: var(--text-primary); font-weight: 500; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${d.name}</span>
+          </div>
+        `).join('')}
+      </div>
+      ` : ''}
+    </div>
+    
+    <div class="card" style="cursor: pointer;" onclick="window.location.hash='#/transactions'">
       <div class="flex justify-between align-center mb-4">
-        <h3 style="font-weight: 500;">Transacciones Recientes</h3>
-        <a href="#/transactions" style="color: var(--accent-primary); text-decoration: none; font-size: 0.9rem;">Ver todas</a>
+        <h3 style="font-weight: 500; margin: 0;">Transacciones Recientes</h3>
+        <span style="color: var(--text-secondary);"><i class="ph ph-caret-right" style="font-size: 1.2rem;"></i></span>
       </div>
       
       ${recentTxs.length === 0 ? '<div style="color: var(--text-secondary); text-align: center; padding: 20px 0;">Aún no hay transacciones. ¡Agrega una!</div>' : ''}
@@ -572,7 +642,53 @@ async function renderDashboard(container: HTMLElement): Promise<void> {
         }).join('')}
       </div>
     </div>
+    
+    <!-- Hub Quick Links -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px;">
+      <a href="#/budget" class="card" style="margin: 0; padding: 12px; text-decoration: none; display: flex; align-items: center; gap: 12px;">
+        <div style="background: var(--accent-primary); color: var(--bg-color); border-radius: var(--radius-md); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: var(--border-width) solid var(--border-color); box-shadow: var(--shadow-sm); flex-shrink: 0;">
+          <i class="ph-fill ph-chart-pie-slice"></i>
+        </div>
+        <span style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">Presupuesto</span>
+      </a>
+      <a href="#/investments" class="card" style="margin: 0; padding: 12px; text-decoration: none; display: flex; align-items: center; gap: 12px;">
+        <div style="background: var(--accent-blue); color: var(--bg-color); border-radius: var(--radius-md); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: var(--border-width) solid var(--border-color); box-shadow: var(--shadow-sm); flex-shrink: 0;">
+          <i class="ph-fill ph-trend-up"></i>
+        </div>
+        <span style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">Inversiones</span>
+      </a>
+    </div>
   `;
+
+  if (chartData.length > 0) {
+    const canvas = document.getElementById('dashboardChart') as HTMLCanvasElement | null;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const textColor = getComputedStyle(document.body).getPropertyValue('--text-primary').trim();
+        const bgColor = getComputedStyle(document.body).getPropertyValue('--bg-color').trim();
+        new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: chartData.map(d => d.name),
+            datasets: [{
+              data: chartData.map(d => d.amount),
+              backgroundColor: chartData.map(d => d.color),
+              borderWidth: 3,
+              borderColor: getComputedStyle(document.body).getPropertyValue('--border-color').trim(),
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            }
+          }
+        });
+      }
+    }
+  }
 }
 
 async function renderTransactions(container: HTMLElement): Promise<void> {
@@ -597,12 +713,18 @@ async function renderTransactions(container: HTMLElement): Promise<void> {
         <button class="btn" id="btn-scan" style="padding: 6px 12px; font-size: 0.85rem; background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-primary);">
           <i class="ph ph-camera"></i> Escanear
         </button>
-        <button class="btn" id="btn-import" style="padding: 6px 12px; font-size: 0.85rem; background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-primary);">
-          <i class="ph ph-file-csv"></i> Importar
+        <button class="btn" id="btn-import" style="padding: 6px 12px; font-size: 0.85rem; background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-primary);" title="Importar CSV">
+          <i class="ph ph-file-csv"></i> CSV
+        </button>
+        <button class="btn" id="btn-export-backup" style="padding: 6px 12px; font-size: 0.85rem; background: var(--accent-primary); border: 1px solid var(--border-color); color: var(--bg-color);" title="Exportar Respaldo">
+          <i class="ph-fill ph-export"></i> Respaldo
+        </button>
+        <button class="btn" id="btn-import-backup" style="padding: 6px 12px; font-size: 0.85rem; background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-primary);" title="Importar Respaldo">
+          <i class="ph-fill ph-download-simple"></i> Restablecer
         </button>
       </div>
     </div>
-    ${txs.length === 0 ? '<div class="card glass text-center" style="padding: 40px; color: var(--text-secondary)">No se encontraron transacciones.</div>' : ''}
+    ${txs.length === 0 ? '<div class="card text-center" style="padding: 40px; color: var(--text-secondary)">No se encontraron transacciones.</div>' : ''}
     <div class="list pb-4">
       ${txs.map(tx => {
         const props = getTxDisplayProps(tx, catMap, accountsMap);
@@ -634,6 +756,8 @@ async function renderTransactions(container: HTMLElement): Promise<void> {
   // Bind new buttons
   const btnScan = document.getElementById('btn-scan');
   const btnImport = document.getElementById('btn-import');
+  const btnExportBackup = document.getElementById('btn-export-backup');
+  const btnImportBackup = document.getElementById('btn-import-backup');
   
   if (btnScan) {
     btnScan.addEventListener('click', () => {
@@ -646,6 +770,20 @@ async function renderTransactions(container: HTMLElement): Promise<void> {
     btnImport.addEventListener('click', () => {
       const csvInput = document.getElementById('csvInput') as HTMLInputElement | null;
       if (csvInput) csvInput.click();
+    });
+  }
+
+  if (btnExportBackup) {
+    btnExportBackup.addEventListener('click', () => {
+      const modal = document.getElementById('backup-export-modal');
+      if (modal) modal.classList.add('active');
+    });
+  }
+
+  if (btnImportBackup) {
+    btnImportBackup.addEventListener('click', () => {
+      const modal = document.getElementById('backup-import-modal');
+      if (modal) modal.classList.add('active');
     });
   }
 }
@@ -662,13 +800,13 @@ async function renderAccounts(container: HTMLElement): Promise<void> {
         <i class="ph ph-plus"></i> Nueva
       </button>
     </div>
-    <div class="card glass mb-4">
+    <div class="card mb-4">
       <div style="font-size: 0.9rem; color: var(--text-secondary);">Patrimonio Total</div>
       <div style="font-size: 2rem; font-weight: 700;">${formatCurrency(total)}</div>
     </div>
     <div class="list pb-4">
       ${accounts.map(acc => `
-        <div class="card glass" style="margin-bottom: 8px;">
+        <div class="card" style="margin-bottom: 8px;">
           <div class="flex justify-between align-center">
             <div class="flex align-center">
               <div class="list-item-icon" style="color: #2f81f7; background: #2f81f720; width: 40px; height: 40px;">
@@ -719,20 +857,48 @@ async function renderAnalytics(container: HTMLElement): Promise<void> {
     const cat = catMap[currentAnalyticsCategory] || { name: 'Desconocida', color: '#888', icon: 'ph-question' };
     const catTxs = txs.filter(tx => tx.categoryId === currentAnalyticsCategory && tx.type === 'expense').reverse();
     const totalSpent = catTxs.reduce((sum, tx) => sum + tx.amount, 0);
-
-    detailHtml = `
-      <div class="card glass mb-4" id="category-details" style="border: 1px solid ${cat.color}50;">
-        <div class="flex align-center mb-4" style="gap: 16px;">
-          <button class="btn" id="btn-analytics-back" style="padding: 8px; font-size: 1.2rem; background: var(--bg-elevated); border: none; color: var(--text-primary); border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-            <i class="ph ph-x"></i>
-          </button>
-          <div>
-            <h2 style="margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
-              <i class="ph ${cat.icon}" style="color: ${cat.color}"></i> ${cat.name}
-            </h2>
-            <div style="color: var(--text-secondary); font-size: 0.9rem;">Total: ${formatCurrency(totalSpent)}</div>
+    const limit = cat.budgetLimit || 0;
+    
+    let budgetHtml = '';
+    if (limit > 0) {
+      const percentage = Math.min((totalSpent / limit) * 100, 100);
+      budgetHtml = `
+        <div style="margin-top: 12px; padding: 12px; background: var(--bg-surface); border: var(--border-width) solid var(--border-color); border-radius: var(--radius-md); box-shadow: inset 2px 2px 0px rgba(0,0,0,0.05); cursor: pointer;" onclick="window.location.hash='#/budget'">
+          <div class="flex justify-between align-center mb-2" style="font-size: 0.85rem;">
+            <span style="color: var(--text-secondary); font-weight: 600;">Presupuesto: ${formatCurrency(limit)}</span>
+            <span style="font-weight: bold; color: ${percentage >= 100 ? 'var(--accent-danger)' : 'var(--text-primary)'};">${percentage.toFixed(0)}%</span>
+          </div>
+          <div style="height: 12px; background: var(--bg-elevated); border-radius: var(--radius-pill); overflow: hidden; border: 1px solid var(--border-color);">
+            <div style="height: 100%; width: ${percentage}%; background: ${percentage >= 100 ? 'var(--accent-danger)' : 'var(--accent-primary)'}; border-right: 1px solid var(--border-color);"></div>
           </div>
         </div>
+      `;
+    } else {
+      budgetHtml = `
+        <div style="margin-top: 12px; font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--bg-surface); border: var(--border-width) dashed var(--border-color); border-radius: var(--radius-md); cursor: pointer;" onclick="window.location.hash='#/budget'">
+          <span>Sin presupuesto asignado</span>
+          <i class="ph ph-plus" style="font-weight: bold; color: var(--text-primary); font-size: 1.1rem;"></i>
+        </div>
+      `;
+    }
+
+    detailHtml = `
+      <div class="card mb-4" id="category-details" style="border: var(--border-width) solid ${cat.color};">
+        <div class="flex align-center mb-4" style="gap: 16px;">
+          <button class="btn" id="btn-analytics-back" style="padding: 8px; font-size: 1.2rem; background: var(--bg-elevated); border: var(--border-width) solid var(--border-color); color: var(--text-primary); border-radius: var(--radius-pill); width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <i class="ph ph-x"></i>
+          </button>
+          <div style="flex: 1;">
+            <h2 style="margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+              <i class="ph-fill ${cat.icon}" style="color: ${cat.color}"></i> ${cat.name}
+            </h2>
+            <div style="color: var(--text-primary); font-weight: 600; font-size: 1rem; margin-top: 4px;">Gastado: ${formatCurrency(totalSpent)}</div>
+          </div>
+        </div>
+        
+        ${budgetHtml}
+        
+        <h4 style="margin-top: 24px; margin-bottom: 12px; font-weight: 600;">Últimas Transacciones</h4>
         
         ${catTxs.length === 0 ? '<div style="color: var(--text-secondary); text-align: center; padding: 20px 0;">No hay transacciones.</div>' : ''}
         
@@ -837,12 +1003,12 @@ async function renderAnalytics(container: HTMLElement): Promise<void> {
     
     ${detailHtml}
 
-    <div class="card glass text-center mb-4" style="${currentAnalyticsCategory !== null ? 'opacity: 0.5; pointer-events: none;' : ''}">
+    <div class="card text-center mb-4" style="${currentAnalyticsCategory !== null ? 'opacity: 0.5; pointer-events: none;' : ''}">
       <h3 style="margin-bottom: 16px; font-weight: 500;">Gastos por Categoría <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 400; display: block; margin-top: 4px;">Toca una categoría para ver detalles</span></h3>
       ${chartData.length === 0 ? '<div style="color: var(--text-secondary); padding: 20px;">No hay suficientes datos aún.</div>' : '<canvas id="expenseChart" style="max-height: 250px; width: 100%; cursor: pointer;"></canvas>'}
     </div>
 
-    <div class="card glass text-center mb-4">
+    <div class="card text-center mb-4">
       <h3 style="margin-bottom: 16px; font-weight: 500;">Flujo de Caja <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 400; display: block; margin-top: 4px;">Últimos 30 días</span></h3>
       <canvas id="cashflowChart" style="max-height: 250px; width: 100%;"></canvas>
     </div>
@@ -871,14 +1037,15 @@ async function renderAnalytics(container: HTMLElement): Promise<void> {
             datasets: [{
               data: chartData.map(d => d.amount),
               backgroundColor: chartData.map(d => d.color),
-              borderWidth: 0,
+              borderWidth: 3,
+              borderColor: getComputedStyle(document.body).getPropertyValue('--border-color').trim(),
             }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: { position: 'right', labels: { color: '#e6edf3' } }
+              legend: { position: 'right', labels: { color: getComputedStyle(document.body).getPropertyValue('--text-primary').trim() } }
             },
             onClick: (e, elements) => {
               if (elements && elements.length > 0) {
@@ -950,11 +1117,11 @@ async function renderAnalytics(container: HTMLElement): Promise<void> {
             intersect: false,
           },
           plugins: {
-            legend: { position: 'bottom', labels: { color: '#e6edf3', usePointStyle: true } }
+            legend: { position: 'bottom', labels: { color: getComputedStyle(document.body).getPropertyValue('--text-primary').trim(), usePointStyle: true } }
           },
           scales: {
-            x: { ticks: { color: '#888', maxTicksLimit: 6 }, grid: { color: '#333' } },
-            y: { ticks: { color: '#888' }, grid: { color: '#333' } }
+            x: { ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-secondary').trim(), maxTicksLimit: 6 }, grid: { color: getComputedStyle(document.body).getPropertyValue('--border-color').trim() } },
+            y: { ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-secondary').trim() }, grid: { color: getComputedStyle(document.body).getPropertyValue('--border-color').trim() } }
           }
         }
       });
@@ -990,7 +1157,7 @@ async function renderBudget(container: HTMLElement): Promise<void> {
         const percent = Math.min(100, (spent / limit) * 100);
         
         return `
-          <div class="card glass" style="margin-bottom: 8px;">
+          <div class="card" style="margin-bottom: 8px;">
             <div class="flex justify-between align-center mb-4">
               <div class="flex align-center">
                 <div class="list-item-icon" style="color: ${cat.color}; background: ${cat.color}20; width: 32px; height: 32px; font-size: 1rem; margin-right: 12px;">
@@ -1601,15 +1768,27 @@ async function init(): Promise<void> {
   if (themeToggle) {
     themeToggle.addEventListener('click', () => {
       const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-      if (isLight) {
-        document.documentElement.removeAttribute('data-theme');
-        localStorage.setItem('theme', 'dark');
-        if (icon) icon.className = 'ph ph-sun';
-      } else {
-        document.documentElement.setAttribute('data-theme', 'light');
-        localStorage.setItem('theme', 'light');
-        if (icon) icon.className = 'ph ph-moon';
+      const iconEl = document.getElementById('theme-icon');
+      
+      // Animar rotación sumando 360 grados cada vez que se toca
+      if (iconEl) {
+        const currentRotation = parseInt(iconEl.getAttribute('data-rotation') || '0', 10);
+        const newRotation = currentRotation + 180; // Media vuelta al cambiar
+        iconEl.style.transform = `rotate(${newRotation}deg)`;
+        iconEl.setAttribute('data-rotation', newRotation.toString());
       }
+
+      setTimeout(() => {
+        if (isLight) {
+          document.documentElement.removeAttribute('data-theme');
+          localStorage.setItem('theme', 'dark');
+          if (icon) icon.className = 'ph-fill ph-sun';
+        } else {
+          document.documentElement.setAttribute('data-theme', 'light');
+          localStorage.setItem('theme', 'light');
+          if (icon) icon.className = 'ph-fill ph-moon';
+        }
+      }, 150); // Cambiar el ícono a mitad de la rotación
     });
   }
 
@@ -1816,6 +1995,108 @@ async function init(): Promise<void> {
     closeCsvModalBtn.addEventListener('click', () => {
       if (csvModal) csvModal.classList.remove('active');
       currentCsvData = null;
+    });
+  }
+
+  // --- Backup Logic ---
+  const backupExportModal = document.getElementById('backup-export-modal');
+  const backupImportModal = document.getElementById('backup-import-modal');
+  const backupExportForm = document.getElementById('backup-export-form') as HTMLFormElement | null;
+  const backupImportForm = document.getElementById('backup-import-form') as HTMLFormElement | null;
+  const backupFileInput = document.getElementById('backupFileInput') as HTMLInputElement | null;
+
+  document.getElementById('close-backup-export-modal')?.addEventListener('click', () => {
+    backupExportModal?.classList.remove('active');
+  });
+
+  document.getElementById('close-backup-import-modal')?.addEventListener('click', () => {
+    backupImportModal?.classList.remove('active');
+  });
+
+  if (backupExportForm) {
+    backupExportForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pwd = (document.getElementById('backup-export-pwd') as HTMLInputElement).value;
+      if (!pwd) return;
+
+      try {
+        if (loadingOverlay) loadingOverlay.classList.add('active');
+        if (loadingText) loadingText.innerText = "Encriptando respaldo...";
+        
+        const blob = await exportBackup(pwd);
+        
+        // Trigger download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const dateStr = new Date().toISOString().split('T')[0];
+        a.download = `BudgetApp_Backup_${dateStr}.bgt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        backupExportModal?.classList.remove('active');
+        backupExportForm.reset();
+        alert("Respaldo exportado exitosamente.");
+      } catch (err: any) {
+        alert("Error al exportar: " + err.message);
+      } finally {
+        if (loadingOverlay) loadingOverlay.classList.remove('active');
+      }
+    });
+  }
+
+  document.getElementById('btn-select-backup')?.addEventListener('click', () => {
+    backupFileInput?.click();
+  });
+
+  if (backupFileInput) {
+    backupFileInput.addEventListener('change', (e: Event) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      const filenameSpan = document.getElementById('backup-import-filename');
+      if (file && filenameSpan) {
+        filenameSpan.innerText = file.name;
+      }
+    });
+  }
+
+  if (backupImportForm) {
+    backupImportForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pwd = (document.getElementById('backup-import-pwd') as HTMLInputElement).value;
+      const file = backupFileInput?.files?.[0];
+      
+      if (!pwd || !file) {
+        alert("Selecciona un archivo y escribe la contraseña.");
+        return;
+      }
+
+      if (!confirm("ADVERTENCIA: Restaurar un respaldo sobreescribirá todos los datos actuales. ¿Estás seguro?")) {
+        return;
+      }
+
+      try {
+        if (loadingOverlay) loadingOverlay.classList.add('active');
+        if (loadingText) loadingText.innerText = "Restaurando respaldo...";
+        
+        await importBackup(file, pwd);
+        
+        backupImportModal?.classList.remove('active');
+        backupImportForm.reset();
+        if (document.getElementById('backup-import-filename')) {
+          document.getElementById('backup-import-filename')!.innerText = "Ningún archivo seleccionado";
+        }
+        
+        alert("Respaldo restaurado exitosamente.");
+        // Refresh app state
+        window.location.hash = '#/';
+        renderDashboard(document.getElementById('router-view')!);
+      } catch (err: any) {
+        alert("Error al restaurar: " + err.message);
+      } finally {
+        if (loadingOverlay) loadingOverlay.classList.remove('active');
+      }
     });
   }
 }

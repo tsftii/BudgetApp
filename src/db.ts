@@ -288,7 +288,13 @@ export const dbAPI = {
   },
   
   // UTILS
-  async getTotalBalance(): Promise<number> {
+  async getLiquidBalance(): Promise<number> {
+    const accounts = await this.getAccounts();
+    return accounts
+      .filter(acc => acc.type !== 'savings' && acc.type !== 'investment')
+      .reduce((sum: number, acc: Account) => sum + acc.balance, 0);
+  },
+  async getNetWorth(): Promise<number> {
     const accounts = await this.getAccounts();
     return accounts.reduce((sum: number, acc: Account) => sum + acc.balance, 0);
   },

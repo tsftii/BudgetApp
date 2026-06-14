@@ -562,7 +562,8 @@ function getTxDisplayProps(
 }
 
 async function renderDashboard(container: HTMLElement): Promise<void> {
-  const balance = await dbAPI.getTotalBalance();
+  const liquidBalance = await dbAPI.getLiquidBalance();
+  const netWorth = await dbAPI.getNetWorth();
   const txs = await dbAPI.getTransactions();
   const recentTxs = txs.reverse().slice(0, 5);
   const categories = await dbAPI.getCategories();
@@ -589,10 +590,13 @@ async function renderDashboard(container: HTMLElement): Promise<void> {
   }).sort((a, b) => b.amount - a.amount);
 
   container.innerHTML = `
-    <div class="balance-display">
-      <div class="balance-label">Balance Total</div>
-      <div class="balance-amount ${balance >= 0 ? 'text-success' : 'text-danger'}">
-        ${formatCurrency(balance)}
+    <div class="balance-display" style="margin-bottom: 24px;">
+      <div class="balance-label">Balance Disponible</div>
+      <div class="balance-amount ${liquidBalance >= 0 ? 'text-success' : 'text-danger'}" style="font-size: 2.5rem;">
+        ${formatCurrency(liquidBalance)}
+      </div>
+      <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 8px;">
+        Patrimonio Total: <span style="font-weight: 600; color: var(--text-primary);">${formatCurrency(netWorth)}</span>
       </div>
     </div>
     
@@ -1253,7 +1257,7 @@ async function handleTxTypeChange(): Promise<void> {
   if (type === 'transfer') {
     if (categoryWrapper) categoryWrapper.style.display = 'none';
     if (targetAccountWrapper) targetAccountWrapper.style.display = 'block';
-    if (accountLabel) accountLabel.innerText = 'Cuenta Destino';
+    if (accountLabel) accountLabel.innerText = 'Cuenta Origen';
   } else {
     if (categoryWrapper) categoryWrapper.style.display = 'block';
     if (targetAccountWrapper) targetAccountWrapper.style.display = 'none';

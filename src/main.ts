@@ -5,7 +5,9 @@ import Chart from 'chart.js/auto';
 import { scanReceipt, scanInvestmentReceipt } from './receiptScanner.js';
 
 import { exportBackup, importBackup } from './backupManager.js';
-
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 // Setup App Shell
 const appContainer = document.querySelector('#app');
 if (appContainer) {
@@ -1935,16 +1937,50 @@ async function init(): Promise<void> {
         
         const blob = await exportBackup(pwd);
         
-        // Trigger download
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
         const dateStr = new Date().toISOString().split('T')[0];
-        a.download = `BudgetApp_Backup_${dateStr}.bgt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        const fileName = `BudgetApp_Backup_${dateStr}.bgt`;
+
+        if (Capacitor.isNativePlatform()) {
+          // Native Android / iOS Download
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          await new Promise<void>((resolve, reject) => {
+            reader.onloadend = async () => {
+              try {
+                const base64data = reader.result as string;
+                // Filesystem plugin requires just the base64 string without the prefix
+                const base64String = base64data.split(',')[1];
+                
+                const result = await Filesystem.writeFile({
+                  path: fileName,
+                  data: base64String,
+                  directory: Directory.Documents
+                });
+                
+                await Share.share({
+                  title: 'Respaldo de Origami Wallet',
+                  text: 'Aquí está tu archivo de respaldo.',
+                  url: result.uri,
+                  dialogTitle: 'Guardar o compartir respaldo'
+                });
+                resolve();
+              } catch (e) {
+                reject(e);
+              }
+            };
+            reader.onerror = reject;
+          });
+        } else {
+          // Web / Desktop Download
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
         
         backupExportModal?.classList.remove('active');
         backupExportForm.reset();

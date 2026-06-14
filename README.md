@@ -14,7 +14,7 @@ All your data stays on your device!
   - Traditional Fixed-Term Deposits (Plazo Fijo)
   - Inflation-Adjusted Deposits (Plazo Fijo UVA)
   - Corporate Bonds / ONs (Obligaciones Negociables) yield calculator
-- **AI Receipt Scanner**: Upload a photo of a receipt, and the app uses Gemini 1.5 Flash AI to automatically parse the date, total amount, description, and intelligently suggest a category.
+- **Receipt Scanner**: Upload a photo of a receipt, and the app uses local OCR (Tesseract.js) to parse the date, total amount, description, and intelligently suggest a category. (No AI or external APIs are used).
 - **Secure Backups**: Since data is local, the app provides an **AES-GCM Encrypted Backup** system. Export your entire database as a secure `.bgt` file.
 - **Beautiful UI**: A highly polished, responsive interface with both Light and Dark modes, fluid animations, and a distinct aesthetic.
 
@@ -26,7 +26,7 @@ All your data stays on your device!
 - **Database**: IndexedDB (via `idb` wrapper)
 - **Charts**: [Chart.js](https://www.chartjs.org/)
 - **Icons**: [Phosphor Icons](https://phosphoricons.com/)
-- **Native Wrap (Optional)**: Capacitor JS configuration is included if you wish to compile this directly to an Android APK or iOS App.
+- **Native Wrap**: Capacitor JS configuration is included to compile this directly to an Android APK. (Note: iOS is not supported).
 
 ## Getting Started
 
@@ -49,20 +49,13 @@ To run this project locally, fork or clone the repository, and follow these step
    npm install
    \`\`\`
 
-3. **Set up Environment Variables**
-   For the AI Receipt Scanner to work, you need a Google Gemini API key.
-   Create a `.env` file in the root directory:
-   \`\`\`env
-   VITE_GEMINI_API_KEY=your_api_key_here
-   \`\`\`
-
-4. **Run the Development Server**
-   \`\`\`bash
+3. **Run the Development Server**
+   ```bash
    npm run dev
-   \`\`\`
+   ```
    The app will be available at `http://localhost:5173`.
 
-5. **Build for Production**
+4. **Build for Production**
    \`\`\`bash
    npm run build
    \`\`\`
@@ -71,7 +64,7 @@ To run this project locally, fork or clone the repository, and follow these step
 ## Installing on your Phone
 
 Since Origami Wallet is a PWA, you can host the `dist` folder on any static hosting provider (like GitHub Pages, Vercel, or Netlify). Once hosted:
-1. Open the URL in Safari (iOS) or Chrome (Android).
+1. Open the URL in Chrome (Android).
 2. Tap the share/menu button and select **"Add to Home Screen"**.
 3. The app will install and behave like a native app!
 

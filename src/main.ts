@@ -1305,13 +1305,15 @@ async function applySmartCategory(merchant: string): Promise<void> {
 
   if (!matchedCat) {
     const keywordMap: Record<string, RegExp> = {
-      'comida': /(supermercado|coto|carrefour|dia|disco|jumbo|kiosco|mcdonalds|burger|panaderia|restaurante|cafeteria|cafe|pizza|empanadas)/,
-      'transporte': /(uber|cabify|taxi|sube|tren|colectivo|estacionamiento|peaje|nafta|combustible|ypf|shell|axion)/,
-      'servicios': /(edenor|edesur|metrogas|aysa|personal|movistar|claro|internet|fibertel|telecentro|luz|agua|gas)/,
-      'salud': /(farmacia|hospital|clinica|osde|swiss medical|galeno)/,
-      'entretenimiento': /(cine|teatro|netflix|spotify|steam|playstation|juegos)/,
-      'sueldo': /(sueldo|salario|cobro|honorarios|freelance|aguinaldo|bono|premio|reintegro)/,
-      'vivienda': /(alquiler|expensas|inmobiliaria|propiedad)/,
+      'comida': /(supermercado|coto|carrefour|dia|disco|jumbo|kiosco|mcdonalds|burger|panaderia|restaurante|cafeteria|cafe|pizza|empanadas|pedidosya|rappi|grido|heladeria|dietetica|vea|makro)/,
+      'transporte': /(uber|cabify|taxi|sube|tren|colectivo|estacionamiento|peaje|nafta|combustible|ypf|shell|axion|puma|didi)/,
+      'servicios': /(edenor|edesur|metrogas|aysa|personal|movistar|claro|internet|fibertel|telecentro|luz|agua|gas|cablevision|directv)/,
+      'salud': /(farmacia|hospital|clinica|osde|swiss medical|galeno|farmacity|odontologo|medico)/,
+      'entretenimiento': /(cine|teatro|netflix|spotify|steam|playstation|juegos|xbox|hbo|disney|prime|youtube)/,
+      'sueldo': /(sueldo|salario|cobro|honorarios|freelance|aguinaldo|bono|premio|reintegro|transferencia recibida)/,
+      'vivienda': /(alquiler|expensas|inmobiliaria|propiedad|ferreteria)/,
+      'ropa': /(zara|zapatillas|indumentaria|ropa|zapatos|tienda)/,
+      'transferencias': /(transferencia enviada|mercado pago|uala|brubank|galicia|santander|bbva|macro)/
     };
     for (const cat of categories) {
       const catName = cat.name.toLowerCase();
@@ -1321,6 +1323,18 @@ async function applySmartCategory(merchant: string): Promise<void> {
         break;
       }
     }
+  }
+
+  // Fallback genérico a "Sin categoría"
+  if (!matchedCat) {
+    let uncat = categories.find(c => c.name.toLowerCase() === 'sin categoría' || c.name.toLowerCase() === 'sin categoria');
+    if (!uncat) {
+      const newId = await dbAPI.addCategory({ name: 'Sin categoría', type: 'expense', color: '#808080' });
+      uncat = { id: newId, name: 'Sin categoría', type: 'expense', color: '#808080' };
+      // Refresh the UI categories since we just added one
+      await populateCategories('expense');
+    }
+    matchedCat = uncat;
   }
 
   if (matchedCat && matchedCat.id !== undefined) {
@@ -1953,7 +1967,7 @@ async function init(): Promise<void> {
         const fileName = `BudgetApp_Backup_${dateStr}.bgt`;
 
         if (Capacitor.isNativePlatform()) {
-          // Native Android / iOS Download
+          // Native Android Download
           const reader = new FileReader();
           reader.readAsDataURL(blob);
           await new Promise<void>((resolve, reject) => {
@@ -1963,18 +1977,29 @@ async function init(): Promise<void> {
                 // Filesystem plugin requires just the base64 string without the prefix
                 const base64String = base64data.split(',')[1];
                 
-                const result = await Filesystem.writeFile({
-                  path: fileName,
-                  data: base64String,
-                  directory: Directory.Documents
-                });
-                
-                await Share.share({
-                  title: 'Respaldo de Origami Wallet',
-                  text: 'Aquí está tu archivo de respaldo.',
-                  url: result.uri,
-                  dialogTitle: 'Guardar o compartir respaldo'
-                });
+                try {
+                  // Intentamos guardar directo en la carpeta pública de Descargas
+                  await Filesystem.writeFile({
+                    path: 'Download/' + fileName,
+                    data: base64String,
+                    directory: Directory.ExternalStorage
+                  });
+                  alert(`¡Respaldo guardado directo en la carpeta de Descargas del celular! (${fileName})`);
+                } catch (e) {
+                  // Fallback para dispositivos con restricciones estrictas de Android 11+
+                  const result = await Filesystem.writeFile({
+                    path: fileName,
+                    data: base64String,
+                    directory: Directory.Documents
+                  });
+                  
+                  await Share.share({
+                    title: 'Respaldo de Origami Wallet',
+                    text: 'Guarda tu archivo de respaldo.',
+                    url: result.uri,
+                    dialogTitle: 'Guardar respaldo en...'
+                  });
+                }
                 resolve();
               } catch (e) {
                 reject(e);

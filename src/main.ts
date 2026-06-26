@@ -8,6 +8,7 @@ import { exportBackup, importBackup } from './backupManager.js';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 // Setup App Shell
 const appContainer = document.querySelector('#app');
 if (appContainer) {
@@ -492,10 +493,9 @@ async function renderInvestments(container: HTMLElement): Promise<void> {
   bindON();
 
   const scanInvBtn = document.getElementById('scan-investment-btn');
-  const invReceiptInput = document.getElementById('investmentReceiptInput') as HTMLInputElement | null;
-  if (scanInvBtn && invReceiptInput) {
+  if (scanInvBtn) {
     scanInvBtn.addEventListener('click', () => {
-      invReceiptInput.click();
+      if (window.doScanInvestment) window.doScanInvestment();
     });
   }
 }
@@ -789,8 +789,7 @@ async function renderTransactions(container: HTMLElement): Promise<void> {
   
   if (btnScan) {
     btnScan.addEventListener('click', () => {
-      const receiptInput = document.getElementById('receiptInput') as HTMLInputElement | null;
-      if (receiptInput) receiptInput.click();
+      if (window.doScanReceipt) window.doScanReceipt();
     });
   }
 
@@ -1219,8 +1218,7 @@ const txForm = document.getElementById('tx-form') as HTMLFormElement | null;
 const modalScanBtn = document.getElementById('modal-scan-btn');
 if (modalScanBtn) {
   modalScanBtn.addEventListener('click', () => {
-    const receiptInput = document.getElementById('receiptInput') as HTMLInputElement | null;
-    if (receiptInput) receiptInput.click();
+    if (window.doScanReceipt) window.doScanReceipt();
   });
 }
 
@@ -1815,102 +1813,112 @@ async function init(): Promise<void> {
 
   router();
 
-  // --- OCR Logic ---
-  const receiptInput = document.getElementById('receiptInput') as HTMLInputElement | null;
-  const invReceiptInput = document.getElementById('investmentReceiptInput') as HTMLInputElement | null;
+  // --- OCR Logic with Camera ---
   const loadingOverlay = document.getElementById('loading-overlay');
   const loadingText = document.getElementById('loading-text');
   
-  if (invReceiptInput && loadingOverlay && loadingText) {
-    invReceiptInput.addEventListener('change', async (e: Event) => {
-      const target = e.target as HTMLInputElement;
-      const file = target.files ? target.files[0] : null;
-      if (!file) return;
+  (window as any).doScanInvestment = async () => {
+    if (!loadingOverlay || !loadingText) return;
+    try {
+      const image = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Prompt
+      });
+      
+      if (!image.base64String) return;
       
       loadingText.innerText = 'Analizando Inversión...';
       loadingOverlay.classList.add('active');
-      try {
-        const data = await scanInvestmentReceipt(file);
-        
-        // Fill out the investment calculators
-        const capitalEl = document.getElementById('inv-capital') as HTMLInputElement | null;
-        const tnaEl = document.getElementById('inv-tna') as HTMLInputElement | null;
-        const daysEl = document.getElementById('inv-days') as HTMLInputElement | null;
-        
-        if (data.capital) {
-          if (capitalEl) capitalEl.value = data.capital.toString();
-          const uvaCapitalEl = document.getElementById('uva-capital') as HTMLInputElement | null;
-          if (uvaCapitalEl) { uvaCapitalEl.value = data.capital.toString(); uvaCapitalEl.dispatchEvent(new Event('input')); }
-          const onNominalEl = document.getElementById('on-nominal') as HTMLInputElement | null;
-          if (onNominalEl) { onNominalEl.value = data.capital.toString(); onNominalEl.dispatchEvent(new Event('input')); }
-        }
-        
-        if (data.tna) {
-          if (tnaEl) tnaEl.value = data.tna.toString();
-          const uvaTnaEl = document.getElementById('uva-tna') as HTMLInputElement | null;
-          if (uvaTnaEl) uvaTnaEl.value = data.tna.toString();
-          const onCouponEl = document.getElementById('on-coupon') as HTMLInputElement | null;
-          if (onCouponEl) onCouponEl.value = data.tna.toString();
-        }
-        
-        if (data.days) {
-          if (daysEl) daysEl.value = data.days.toString();
-          const uvaDaysEl = document.getElementById('uva-days') as HTMLInputElement | null;
-          if (uvaDaysEl) uvaDaysEl.value = data.days.toString();
-        }
-        
-        // Trigger manual input event to recalculate
-        if (capitalEl) capitalEl.dispatchEvent(new Event('input'));
-        
-      } catch (err: any) {
-        alert("Fallo al leer el comprobante: " + err.message);
-      } finally {
-        loadingOverlay.classList.remove('active');
-        loadingText.innerText = 'Procesando...';
-        invReceiptInput.value = ''; // reset
+      
+      const data = await scanInvestmentReceipt(image.base64String);
+      
+      // Fill out the investment calculators
+      const capitalEl = document.getElementById('inv-capital') as HTMLInputElement | null;
+      const tnaEl = document.getElementById('inv-tna') as HTMLInputElement | null;
+      const daysEl = document.getElementById('inv-days') as HTMLInputElement | null;
+      
+      if (data.capital) {
+        if (capitalEl) capitalEl.value = data.capital.toString();
+        const uvaCapitalEl = document.getElementById('uva-capital') as HTMLInputElement | null;
+        if (uvaCapitalEl) { uvaCapitalEl.value = data.capital.toString(); uvaCapitalEl.dispatchEvent(new Event('input')); }
+        const onNominalEl = document.getElementById('on-nominal') as HTMLInputElement | null;
+        if (onNominalEl) { onNominalEl.value = data.capital.toString(); onNominalEl.dispatchEvent(new Event('input')); }
       }
-    });
-  }
+      
+      if (data.tna) {
+        if (tnaEl) tnaEl.value = data.tna.toString();
+        const uvaTnaEl = document.getElementById('uva-tna') as HTMLInputElement | null;
+        if (uvaTnaEl) uvaTnaEl.value = data.tna.toString();
+        const onCouponEl = document.getElementById('on-coupon') as HTMLInputElement | null;
+        if (onCouponEl) onCouponEl.value = data.tna.toString();
+      }
+      
+      if (data.days) {
+        if (daysEl) daysEl.value = data.days.toString();
+        const uvaDaysEl = document.getElementById('uva-days') as HTMLInputElement | null;
+        if (uvaDaysEl) uvaDaysEl.value = data.days.toString();
+      }
+      
+      // Trigger manual input event to recalculate
+      if (capitalEl) capitalEl.dispatchEvent(new Event('input'));
+      
+    } catch (err: any) {
+      if (err.message !== 'User cancelled photos app') {
+        alert("Fallo al leer el comprobante: " + err.message);
+      }
+    } finally {
+      loadingOverlay.classList.remove('active');
+      loadingText.innerText = 'Procesando...';
+    }
+  };
 
-  if (receiptInput && loadingOverlay) {
-    receiptInput.addEventListener('change', async (e: Event) => {
-      const target = e.target as HTMLInputElement;
-      const file = target.files ? target.files[0] : null;
-      if (!file) return;
+  (window as any).doScanReceipt = async () => {
+    if (!loadingOverlay) return;
+    try {
+      const image = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Prompt
+      });
+      
+      if (!image.base64String) return;
       
       loadingOverlay.classList.add('active');
-      try {
-        const data = await scanReceipt(file);
-        
-        // Open Add Tx modal
-        const addTxBtn = document.getElementById('add-tx-btn');
-        if (addTxBtn) addTxBtn.click();
-        
-        // Wait for modal to populate categories asynchronously
-        await new Promise(r => setTimeout(r, 150));
-        
-        // Fill data
-        const txAmountInput = document.getElementById('tx-amount') as HTMLInputElement | null;
-        const txDescInput = document.getElementById('tx-desc') as HTMLInputElement | null;
-        const txDateInput = document.getElementById('tx-date') as HTMLInputElement | null;
-        
-        if (data.amount !== null && txAmountInput) txAmountInput.value = data.amount.toString();
-        if (data.merchant && txDescInput) txDescInput.value = data.merchant;
-        if (data.date && txDateInput) txDateInput.value = data.date;
+      
+      const data = await scanReceipt(image.base64String);
+      
+      // Open Add Tx modal
+      const addTxBtn = document.getElementById('add-tx-btn');
+      if (addTxBtn) addTxBtn.click();
+      
+      // Wait for modal to populate categories asynchronously
+      await new Promise(r => setTimeout(r, 150));
+      
+      // Fill data
+      const txAmountInput = document.getElementById('tx-amount') as HTMLInputElement | null;
+      const txDescInput = document.getElementById('tx-desc') as HTMLInputElement | null;
+      const txDateInput = document.getElementById('tx-date') as HTMLInputElement | null;
+      
+      if (data.amount !== null && txAmountInput) txAmountInput.value = data.amount.toString();
+      if (data.merchant && txDescInput) txDescInput.value = data.merchant;
+      if (data.date && txDateInput) txDateInput.value = data.date;
 
-        // Smart Categorization
-        if (data.merchant) {
-           await applySmartCategory(data.merchant);
-        }
-        
-      } catch (err: any) {
-        alert("Failed to read receipt: " + err.message);
-      } finally {
-        loadingOverlay.classList.remove('active');
-        receiptInput.value = ''; // reset
+      // Smart Categorization
+      if (data.merchant) {
+         await applySmartCategory(data.merchant);
       }
-    });
-  }
+      
+    } catch (err: any) {
+      if (err.message !== 'User cancelled photos app') {
+        alert("Failed to read receipt: " + err.message);
+      }
+    } finally {
+      loadingOverlay.classList.remove('active');
+    }
+  };
 
 
 

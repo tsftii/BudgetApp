@@ -1,66 +1,4 @@
-export async function preprocessImage(imageFile: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(URL.createObjectURL(imageFile)); // Fallback if no canvas support
-        return;
-      }
-      
-      // Limit resolution to avoid crashing Tesseract and improve speed
-      const maxDim = 2048;
-      let width = img.width;
-      let height = img.height;
-      
-      if (width > maxDim || height > maxDim) {
-        if (width > height) {
-          height = Math.floor((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.floor((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-
-      // Draw original image
-      ctx.drawImage(img, 0, 0, width, height);
-
-      // Get pixel data
-      const imageData = ctx.getImageData(0, 0, width, height);
-      const data = imageData.data;
-
-      // Apply grayscale and contrast boost
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        
-        // Grayscale (Luminance)
-        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-        
-        // Boost contrast slightly to make text pop against paper
-        const contrast = 60; // 0-255 scale
-        const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-        const newLuminance = factor * (luminance - 128) + 128;
-        const clamped = Math.max(0, Math.min(255, newLuminance));
-        
-        data[i] = clamped;     // R
-        data[i+1] = clamped;   // G
-        data[i+2] = clamped;   // B
-      }
-
-      ctx.putImageData(imageData, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
-    };
-    img.onerror = reject;
-    img.src = URL.createObjectURL(imageFile);
-  });
-}
+import { CapacitorPluginMlKitTextRecognition } from '@pantrist/capacitor-plugin-ml-kit-text-recognition';
 
 export interface InvestmentReceiptData {
   capital: number | null;
@@ -68,16 +6,13 @@ export interface InvestmentReceiptData {
   days: number | null;
 }
 
-export async function scanInvestmentReceipt(imageFile: File): Promise<InvestmentReceiptData> {
+export async function scanInvestmentReceipt(base64Image: string): Promise<InvestmentReceiptData> {
   try {
-    const processedImageUrl = await preprocessImage(imageFile);
-    const result = await Tesseract.recognize(processedImageUrl, 'spa', {
-      logger: (m: any) => console.log(m)
-    });
-    return parseInvestmentReceiptData(result.data.text);
+    const result = await CapacitorPluginMlKitTextRecognition.detectText({ base64Image });
+    return parseInvestmentReceiptData(result.text);
   } catch (error) {
     console.error("OCR Error:", error);
-    throw new Error("Error al escanear el comprobante de inversión");
+    throw new Error("Error al escanear el comprobante de inversión con ML Kit");
   }
 }
 
@@ -156,18 +91,20 @@ export function parseInvestmentReceiptData(text: string): InvestmentReceiptData 
   return { capital, tna, days };
 }
 
-export async function scanReceipt(imageFile: File): Promise<ReceiptData> {
+export interface ReceiptData {
+  amount: number | null;
+  date: string | null;
+  merchant: string;
+  rawText: string;
+}
+
+export async function scanReceipt(base64Image: string): Promise<ReceiptData> {
   try {
-    const processedImageUrl = await preprocessImage(imageFile);
-    
-    // We can use recognize directly which manages worker creation and destruction internally
-    const result = await Tesseract.recognize(processedImageUrl, 'spa', {
-      logger: (m: any) => console.log(m)
-    });
-    return parseReceiptData(result.data.text);
+    const result = await CapacitorPluginMlKitTextRecognition.detectText({ base64Image });
+    return parseReceiptData(result.text);
   } catch (error) {
     console.error("OCR Error:", error);
-    throw new Error("Error al escanear el recibo");
+    throw new Error("Error al escanear el recibo con ML Kit");
   }
 }
 

@@ -3,12 +3,23 @@ import { seedDefaults, dbAPI, Transaction, Category, Account } from './db.js';
 import { formatCurrency, formatDate } from './utils.js';
 import Chart from 'chart.js/auto';
 import { scanReceipt, scanInvestmentReceipt } from './receiptScanner.js';
-
 import { exportBackup, importBackup } from './backupManager.js';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { BiometricAuth } from '@aparajita/capacitor-biometric-auth';
+import { App } from '@capacitor/app';
+
+// Define the API available to the console/window
+declare global {
+  interface Window {
+    db: any;
+    // Shortcuts and bulk editing helpers
+    bulkEditTransactions: (ids: number[], updates: Partial<Transaction>) => Promise<void>;
+  }
+}
+
 // Setup App Shell
 const appContainer = document.querySelector('#app');
 if (appContainer) {
@@ -1166,9 +1177,14 @@ async function renderBudget(container: HTMLElement): Promise<void> {
   container.innerHTML = `
     <div class="flex justify-between align-center mb-4">
       <h2>Categorías de Presupuesto</h2>
-      <button class="btn btn-primary" id="add-category-btn" style="padding: 8px 16px; font-size: 0.9rem;">
-        <i class="ph ph-plus"></i> Nueva
-      </button>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-primary" id="add-category-btn" style="padding: 8px 12px; font-size: 0.9rem;">
+          <i class="ph ph-plus"></i> Nueva
+        </button>
+        <button class="btn" id="bulk-edit-btn" style="padding: 8px 12px; font-size: 0.9rem; background: var(--bg-surface); border: var(--border-width) solid var(--border-color); color: var(--text-primary);">
+          <i class="ph ph-broom"></i> Limpiar
+        </button>
+      </div>
     </div>
     <div class="list pb-4">
       ${expenses.map(cat => {
@@ -1206,6 +1222,49 @@ async function renderBudget(container: HTMLElement): Promise<void> {
   const addCategoryBtn = document.getElementById('add-category-btn');
   if (addCategoryBtn) {
     addCategoryBtn.addEventListener('click', window.openCategoryModal);
+  }
+
+  const bulkEditBtn = document.getElementById('bulk-edit-btn');
+  if (bulkEditBtn) {
+    bulkEditBtn.addEventListener('click', async () => {
+      const categories = await dbAPI.getCategories();
+      let uncat = categories.find(c => c.name.toLowerCase() === 'sin categoría' || c.name.toLowerCase() === 'sin categoria');
+      
+      if (!uncat) {
+        alert("No existe la categoría 'Sin categoría' aún. ¡Todo está ordenado!");
+        return;
+      }
+
+      const txs = await dbAPI.getTransactions();
+      const uncategorizedTxs = txs.filter(t => t.categoryId === uncat?.id);
+
+      if (uncategorizedTxs.length === 0) {
+        alert("No hay gastos en 'Sin categoría' para limpiar.");
+        return;
+      }
+
+      const listContainer = document.getElementById('bulk-edit-list');
+      const selectCat = document.getElementById('bulk-edit-category');
+      if (!listContainer || !selectCat) return;
+
+      listContainer.innerHTML = uncategorizedTxs.map(tx => `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--bg-elevated);">
+          <label style="display: flex; align-items: center; cursor: pointer; flex-grow: 1;">
+            <input type="checkbox" name="bulk-tx" value="${tx.id}" style="margin-right: 12px; transform: scale(1.2);">
+            <div>
+              <div style="font-weight: 500; color: var(--text-primary);">${tx.merchant || tx.description}</div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary);">${tx.date}</div>
+            </div>
+          </label>
+          <div style="font-weight: 600; color: var(--accent-danger);">$${tx.amount.toFixed(2)}</div>
+        </div>
+      `).join('');
+
+      const expenseCats = categories.filter(c => c.type !== 'income' && c.id !== uncat?.id);
+      selectCat.innerHTML = expenseCats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+      document.getElementById('bulk-edit-modal')?.classList.add('active');
+    });
   }
 }
 
@@ -2079,6 +2138,103 @@ async function init(): Promise<void> {
         alert("Error al restaurar: " + err.message);
       } finally {
         if (loadingOverlay) loadingOverlay.classList.remove('active');
+      }
+    });
+  }
+
+  // --- Bulk Edit Modal Listeners ---
+  document.getElementById('close-bulk-edit-modal')?.addEventListener('click', () => {
+    document.getElementById('bulk-edit-modal')?.classList.remove('active');
+  });
+
+  document.getElementById('bulk-edit-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const selectCat = document.getElementById('bulk-edit-category') as HTMLSelectElement;
+    const newCatId = Number(selectCat.value);
+    
+    const checkboxes = document.querySelectorAll('input[name="bulk-tx"]:checked') as NodeListOf<HTMLInputElement>;
+    if (checkboxes.length === 0) {
+      alert("Selecciona al menos un gasto para recategorizar.");
+      return;
+    }
+
+    try {
+      const txs = await dbAPI.getTransactions();
+      for (const cb of checkboxes) {
+        const txId = Number(cb.value);
+        const tx = txs.find(t => t.id === txId);
+        if (tx) {
+          tx.categoryId = newCatId;
+          await dbAPI.updateTransaction(tx);
+        }
+      }
+      document.getElementById('bulk-edit-modal')?.classList.remove('active');
+      alert(`Se recategorizaron ${checkboxes.length} gastos exitosamente.`);
+      
+      // Refresh current view
+      if (window.location.hash === '#/transactions') {
+        renderTransactions(document.getElementById('router-view')!);
+      } else {
+        renderBudget(document.getElementById('router-view')!);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error al actualizar gastos.");
+    }
+  });
+
+  // --- Biometric Auth Logic ---
+  const lockScreen = document.getElementById('biometric-lock-screen');
+  const unlockBtn = document.getElementById('btn-unlock-biometric');
+  
+  const checkBiometrics = async () => {
+    if (!Capacitor.isNativePlatform()) {
+      // In web, just hide the lock screen
+      if (lockScreen) lockScreen.style.display = 'none';
+      return;
+    }
+    
+    try {
+      const info = await BiometricAuth.checkBiometry();
+      if (info.isAvailable) {
+        if (unlockBtn) unlockBtn.style.display = 'block';
+        
+        try {
+          await BiometricAuth.authenticate({
+            reason: 'Desbloquea Origami Wallet',
+            cancelTitle: 'Cancelar',
+            allowDeviceCredential: true, // Permite usar el PIN del teléfono como fallback
+          });
+          // Si pasa:
+          if (lockScreen) lockScreen.style.display = 'none';
+        } catch (authErr) {
+          console.warn("User failed or canceled biometrics", authErr);
+          // Queda bloqueado, el usuario puede tocar el botón para reintentar
+        }
+      } else {
+        // No biometry available, just hide
+        if (lockScreen) lockScreen.style.display = 'none';
+      }
+    } catch (err) {
+      console.warn("Biometrics check failed", err);
+      if (lockScreen) lockScreen.style.display = 'none';
+    }
+  };
+
+  if (unlockBtn) {
+    unlockBtn.addEventListener('click', checkBiometrics);
+  }
+  
+  // Call it on init
+  checkBiometrics();
+
+  // --- App Shortcuts Deep Link Listener ---
+  if (Capacitor.isNativePlatform()) {
+    App.addListener('appUrlOpen', (event) => {
+      if (event.url.includes('budgetapp://scan')) {
+        setTimeout(() => {
+          if (window.doScanReceipt) window.doScanReceipt();
+        }, 500);
       }
     });
   }

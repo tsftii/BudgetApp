@@ -24,6 +24,43 @@
     <input type="file" accept="image/*" id="investmentReceiptInput" style="position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; z-index: -1;">
     <input type="file" accept=".bgt" id="backupFileInput" style="position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; z-index: -1;">
 
+    <!-- Biometric Lock Screen -->
+    <div id="biometric-lock-screen" style="position: fixed; inset: 0; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+       <i class="ph-fill ph-fingerprint" style="font-size: 5rem; color: var(--accent-primary); margin-bottom: 1rem;"></i>
+       <h2 style="color: var(--text-primary); margin-bottom: 0.5rem; font-family: var(--font-family-heading);">Origami Wallet</h2>
+       <p style="color: var(--text-secondary); margin-bottom: 2rem; font-family: var(--font-family-body);">Bóveda bloqueada</p>
+       <button id="btn-unlock-biometric" class="btn btn-primary" style="display: none;">
+         <i class="ph-fill ph-lock-key-open"></i> Desbloquear
+       </button>
+    </div>
+
+    <!-- Bulk Edit Modal -->
+    <div class="modal-overlay" id="bulk-edit-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Limpiar Gastos</h2>
+          <button class="modal-close" id="close-bulk-edit-modal"><i class="ph ph-x"></i></button>
+        </div>
+        <p style="margin-bottom: 16px; font-size: 0.9rem; color: var(--text-secondary);">Selecciona los gastos que quieres recategorizar en lote.</p>
+        
+        <div id="bulk-edit-list" style="max-height: 250px; overflow-y: auto; margin-bottom: 16px; border: var(--border-width) solid var(--border-color); border-radius: var(--radius-sm); padding: 8px; background: var(--bg-color);">
+          <!-- Checkbox list of uncategorized txs will go here -->
+        </div>
+
+        <form id="bulk-edit-form">
+          <div class="form-group">
+            <label>Nueva Categoría</label>
+            <select class="form-control" id="bulk-edit-category" required>
+              <!-- Options populated dynamically -->
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary w-100 mt-4">
+            <i class="ph-fill ph-check-circle"></i> Aplicar Cambios
+          </button>
+        </form>
+      </div>
+    </div>
+
 
 
     <!-- Backup Export Modal -->
